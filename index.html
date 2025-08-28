@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Visualizador de ESTATUS</title>
+  <!-- Librerías -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    table { width: 100%; margin-top: 20px; }
+    #movil-filter { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Visualizador de ESTATUS</h1>
+<p>Tabla de datos cargada automáticamente desde ESTATUS.xlsx</p>
+
+<!-- Filtro MOVIL -->
+<label for="movil-filter">Filtrar por MOVIL:</label>
+<select id="movil-filter">
+  <option value="">Todos</option>
+</select>
+
+<table id="excel-table" class="display">
+  <thead id="table-head"></thead>
+  <tbody id="table-body"></tbody>
+</table>
+
+<script>
+$(document).ready(function() {
+    fetch('ESTATUS.xlsx')
+    .then(response => response.arrayBuffer())
+    .then(data => {
+        let workbook = XLSX.read(data, { type: 'array' });
+        let sheet = workbook.Sheets[workbook.SheetNames[0]];
+        let json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        let head = $("#table-head");
+        let body = $("#table-body");
+        head.empty(); body.empty();
+
+        if (json.length > 0) {
+            // Encabezados
+            let headerRow = "<tr>" + json[0].map(h => `<th>${h}</th>`).join("") + "</tr>";
+            head.html(headerRow);
+
+            // Filas
+            for (let i = 1; i < json.length; i++) {
+                let row = "<tr>" + json[i].map(c => `<td>${c ?? ""}</td>`).join("") + "</tr>";
+                body.append(row);
+            }
+
+            // Obtener índice de columna MOVIL
+            const movilIndex = json[0].indexOf("MOVIL");
+
+            // Llenar filtro con valores únicos
+            let movils = [...new Set(json.slice(1).map(row => row[movilIndex]))].sort();
+            movils.forEach(m => {
+                $("#movil-filter").append(`<option value="${m}">${m}</option>`);
+            });
+
+            // Inicializar DataTable
+            let table = $('#excel-table').DataTable();
+
+            // Filtrar por MOVIL
+            $("#movil-filter").on("change", function() {
+                let val = $(this).val();
+                if(val) {
+                    table.column(movilIndex).search('^' + val + '$', true, false).draw();
+                } else {
+                    table.column(movilIndex).search('').draw();
+                }
+            });
+        }
+    });
+});
+</script>
+
+</body>
+</html>
