@@ -11,21 +11,28 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     h1 { color: #333; }
-    table { width: 100%; margin-top: 20px; }
-    #movil-filter { margin-bottom: 10px; }
+    #flota-buttons { margin-bottom: 15px; }
+    #flota-buttons button { margin-right: 5px; margin-bottom: 5px; }
+    #movil-filter-container { margin-bottom: 15px; text-align: center; }
+    #movil-filter { padding: 5px; width: 200px; font-size: 14px; }
+    table { width: 100%; }
   </style>
 </head>
 <body>
 
 <h1>Visualizador de ESTATUS</h1>
-<p>Tabla de datos cargada automáticamente desde ESTATUS.xlsx</p>
+<p>Filtra primero por Flota y luego busca un MOVIL específico.</p>
 
-<!-- Filtro MOVIL -->
-<label for="movil-filter">Filtrar por MOVIL:</label>
-<select id="movil-filter">
-  <option value="">Todos</option>
-</select>
+<!-- Botones Flota -->
+<div id="flota-buttons"></div>
 
+<!-- Filtro dinámico MOVIL -->
+<div id="movil-filter-container">
+  <label for="movil-filter">Buscar MOVIL:</label>
+  <input type="text" id="movil-filter" placeholder="Escribe el código del MOVIL...">
+</div>
+
+<!-- Tabla de datos -->
 <table id="excel-table" class="display">
   <thead id="table-head"></thead>
   <tbody id="table-body"></tbody>
@@ -42,7 +49,9 @@ $(document).ready(function() {
 
         let head = $("#table-head");
         let body = $("#table-body");
-        head.empty(); body.empty();
+        let flotaButtonsDiv = $("#flota-buttons");
+
+        head.empty(); body.empty(); flotaButtonsDiv.empty();
 
         if (json.length > 0) {
             // Encabezados
@@ -55,26 +64,30 @@ $(document).ready(function() {
                 body.append(row);
             }
 
-            // Obtener índice de columna MOVIL
+            // Índices de columnas
             const movilIndex = json[0].indexOf("MOVIL");
+            const flotaIndex = json[0].indexOf("Flota");
 
-            // Llenar filtro con valores únicos
-            let movils = [...new Set(json.slice(1).map(row => row[movilIndex]))].sort();
-            movils.forEach(m => {
-                $("#movil-filter").append(`<option value="${m}">${m}</option>`);
+            // Crear botones de Flota dinámicos
+            let flotas = [...new Set(json.slice(1).map(row => row[flotaIndex]))].sort();
+            flotas.forEach(f => {
+                let btn = $(`<button>${f}</button>`);
+                btn.on("click", function() {
+                    // Filtrar tabla por Flota
+                    table.column(flotaIndex).search('^' + f + '$', true, false).draw();
+                    $("#movil-filter").val('').trigger('input'); // limpiar búsqueda MOVIL
+                });
+                flotaButtonsDiv.append(btn);
             });
 
             // Inicializar DataTable
             let table = $('#excel-table').DataTable();
 
-            // Filtrar por MOVIL
-            $("#movil-filter").on("change", function() {
+            // Filtro dinámico MOVIL
+            $("#movil-filter").on("input", function() {
                 let val = $(this).val();
-                if(val) {
-                    table.column(movilIndex).search('^' + val + '$', true, false).draw();
-                } else {
-                    table.column(movilIndex).search('').draw();
-                }
+                // Expresión regex para que busque lo que contiene
+                table.column(movilIndex).search(val, true, false).draw();
             });
         }
     });
