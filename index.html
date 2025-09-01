@@ -189,10 +189,12 @@ $(document).ready(function(){
                                 type:'line', 
                                 label:'Promedio de Meta', 
                                 data: promedioMetas, 
-                                borderColor:'#00B300', // Color verde intenso
-                                borderWidth: 11, // Grosor de 11 píxeles
+                                borderColor:'#FF0000', // Color rojo para los marcadores
+                                borderWidth: 0, // Ancho de la línea a 0 para que no se vea
                                 fill:false, 
-                                pointRadius: 0, // Oculta los puntos para que solo se vea la línea
+                                pointRadius: 10, // Tamaño del marcador
+                                pointStyle: 'line', // Estilo de punto: línea
+                                rotation: 90, // Rotación de 90 grados para que el marcador sea horizontal
                                 order: 1, 
                                 datalabels: {
                                     align: 'end',
