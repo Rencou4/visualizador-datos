@@ -1,252 +1,224 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8" />
-    <title>Visualizador - data (hoja "data")</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <title>Visualizador - data (hoja "data")</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css"/>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <!-- SheetJS, jQuery y DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css"/>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 12px; background:#f6f8fb; color:#222; }
 
-    <style>
-        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 12px; background:#f6f8fb; color:#222; }
-        header { background-color:#1721BF; padding:12px 0; text-align:center; color:#fff; font-family:'DIN', 'DIN Alternate', sans-serif; }
-        header h1 { margin:0; font-size:20px; font-weight:700; line-height:1.2em; }
-        .controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:12px 0; }
-        .controls select, .controls input[type="text"] { padding:8px 10px; border-radius:8px; border:1px solid #d0d7de; font-size:14px; min-width:140px; }
-        .controls .search-box { min-width:200px; max-width:320px; width:40vw; }
-        .table-wrapper { background:#fff; border-radius:10px; padding:8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow-x:auto; margin-bottom:20px; }
-        table.dataTable.no-footer { border-bottom: none; }
-        table.dataTable tbody tr:hover { background:#f1f5fb; }
-        .diff-zero { color:#FFD700; font-weight:bold; margin-left:4px; }
-        .diff-negative { color:#FF0000; font-weight:bold; margin-left:4px; }
-        .diff-positive { color:#00AA00; font-weight:bold; margin-left:4px; }
-        .chart-container { width:100%; max-width:1000px; margin: auto; padding:10px; background:#fff; border-radius:10px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .chart-container canvas { width:100% !important; height:400px !important; }
-        @media (max-width: 600px) { .controls select, .controls input[type="text"] { font-size:13px; padding:10px; } header h1 { font-size:18px; } }
-    </style>
+    header {
+      background-color:#1721BF; 
+      padding:12px 0; 
+      text-align:center; 
+      color:#fff; 
+      font-family:'DIN', 'DIN Alternate', sans-serif;
+      position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    header h1 { margin:0; font-size:20px; font-weight:700; line-height:1.2; }
+
+    /* Marquee vertical a ambos lados */
+    .vertical-marquee {
+      position:absolute; top:50%; transform:translateY(-50%);
+      height:60px; overflow:hidden; display:flex; align-items:center;
+    }
+    .marquee-left { left:10px; }
+    .marquee-right { right:10px; }
+    .marquee-content {
+      display:flex; flex-direction:column;
+      animation: moveUp 7.5s linear infinite;
+    }
+    .marquee-content div {
+      height:40px; text-align:center; font-weight:bold; color:yellow; font-size:14px;
+    }
+    @keyframes moveUp {
+      0%   { transform: translateY(100%); }
+      33%  { transform: translateY(0%); }
+      66%  { transform: translateY(-100%); }
+      100% { transform: translateY(-200%); }
+    }
+
+    .controls {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin:12px 0;
+    }
+
+    .controls select, .controls input[type="text"] {
+      padding:8px 10px;
+      border-radius:8px;
+      border:1px solid #d0d7de;
+      font-size:14px;
+      min-width:140px;
+    }
+
+    .controls .search-box { min-width:200px; max-width:320px; width:40vw; }
+
+    .table-wrapper {
+      background:#fff;
+      border-radius:10px;
+      padding:8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      overflow-x:auto;
+    }
+
+    table.dataTable.no-footer { border-bottom: none; }
+    table.dataTable tbody tr:hover { background:#f1f5fb; }
+
+    /* Iconos diferencia */
+    .diff-zero { color:#FFD700; font-weight:bold; margin-left:4px; }
+    .diff-negative { color:#FF0000; font-weight:bold; margin-left:4px; }
+    .diff-positive { color:#00AA00; font-weight:bold; margin-left:4px; }
+
+    /* Encabezados */
+    table.dataTable thead th { background:#1721BF; color:#fff; font-weight:bold; }
+
+    @media (max-width: 600px) {
+      .controls select, .controls input[type="text"] { font-size:13px; padding:10px; }
+      header h1 { font-size:18px; }
+    }
+  </style>
 </head>
 <body>
 
 <header>
-    <h1>Racha<br>Navideña</h1>
+  <!-- Marquee vertical izquierdo -->
+  <div class="vertical-marquee marquee-left">
+    <div class="marquee-content">
+      <div>PREMIOS PARA LOS GANADORES</div>
+      <div>PAVO</div>
+      <div>CANASTA</div>
+    </div>
+  </div>
+
+  <!-- Título en dos líneas -->
+  <h1>
+    Racha<br>
+    Navideña
+  </h1>
+
+  <!-- Marquee vertical derecho -->
+  <div class="vertical-marquee marquee-right">
+    <div class="marquee-content">
+      <div>PREMIOS PARA LOS GANADORES</div>
+      <div>PAVO</div>
+      <div>CANASTA</div>
+    </div>
+  </div>
 </header>
 
 <div class="controls" aria-hidden="false">
-    <select id="filterSemana"><option value="">Semana: Todas</option></select>
-    <select id="filterOperacion"><option value="">Operación: Todas</option></select>
-    <select id="filterFlota"><option value="">FLOTA: Todas</option></select>
-    <input id="filterMovil" class="search-box" type="text" placeholder="Buscar MOVIL (dinámico)"/>
-    <button id="clearFilters" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Limpiar</button>
+  <select id="filterSemana"><option value="">Semana: Todas</option></select>
+  <select id="filterOperacion"><option value="">Operación: Todas</option></select>
+  <select id="filterFlota"><option value="">FLOTA: Todas</option></select>
+  <input id="filterMovil" class="search-box" type="text" placeholder="Buscar MOVIL (dinámico)"/>
+  <button id="clearFilters" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Limpiar</button>
 </div>
 
 <div class="table-wrapper">
-    <table id="dataTable" class="display nowrap" style="width:100%">
-        <thead><tr id="theadRow"></tr></thead>
-        <tbody id="tbodyRows"></tbody>
-    </table>
-</div>
-
-<div class="controls">
-    <label for="chartSelector">Ver gráfico:</label>
-    <select id="chartSelector">
-        <option value="servicios">Servicios</option>
-    </select>
-</div>
-
-<div class="chart-container">
-    <canvas id="chartServicios"></canvas>
+  <table id="dataTable" class="display nowrap" style="width:100%">
+    <thead><tr id="theadRow"></tr></thead>
+    <tbody id="tbodyRows"></tbody>
+  </table>
 </div>
 
 <script>
-function normalize(s){ if(s === undefined || s === null) return ""; return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g,'').replace(/[^a-zA-Z0-9_./-]/g,'').toLowerCase(); }
+function normalize(s){
+  if(s === undefined || s === null) return "";
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g,'').replace(/[^a-zA-Z0-9_./-]/g,'').toLowerCase();
+}
 function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-let chartServicios;
-
 $(document).ready(function(){
-    fetch('data.xlsx')
-        .then(r => { if(!r.ok) throw new Error('No se pudo descargar data.xlsx'); return r.arrayBuffer(); })
-        .then(ab => {
-            const workbook = XLSX.read(ab, {type:'array'});
-            const sheetName = workbook.SheetNames.includes('data') ? 'data' : workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-            const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
-            if(!rows || rows.length<1){ alert('La hoja está vacía o no tiene encabezados.'); return; }
+  fetch('data.xlsx')
+    .then(r => { if(!r.ok) throw new Error('No se pudo descargar data.xlsx'); return r.arrayBuffer(); })
+    .then(ab => {
+      const workbook = XLSX.read(ab, {type:'array'});
+      const sheetName = workbook.SheetNames.includes('data') ? 'data' : workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
 
-            const headers = rows[0].map(h => h===null?"":h);
-            const thead = $('#theadRow'); thead.empty();
-            headers.forEach(h => thead.append('<th>'+ (h||'') + '</th>'));
+      if(!rows || rows.length<1){ alert('La hoja está vacía o no tiene encabezados.'); return; }
 
-            const tbody = $('#tbodyRows'); tbody.empty();
-            for(let i=1;i<rows.length;i++){
-                let tr='<tr>';
-                for(let j=0;j<headers.length;j++){
-                    let cell = rows[i][j]===undefined?'':rows[i][j];
-                    if(normalize(headers[j]) === 'diferencia'){
-                        let val = parseFloat(cell);
-                        if(isNaN(val) || val===0) cell = cell + ' <span class="diff-zero">—</span>';
-                        else if(val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
-                        else cell = cell + ' <span class="diff-positive">▲</span>';
-                    }
-                    if(normalize(headers[j]) === 'produccións/.' || normalize(headers[j])==='produccions/.') {
-                        cell = parseFloat(cell).toLocaleString('es-PE', {style:'currency', currency:'PEN'});
-                    }
-                    tr += '<td>'+cell+'</td>';
-                }
-                tr+='</tr>'; tbody.append(tr);
-            }
+      const headers = rows[0].map(h => h===null?"":h);
+      const thead = $('#theadRow'); thead.empty();
+      headers.forEach(h => thead.append('<th>'+ (h||'') + '</th>'));
 
-            const headerNorm = headers.map(h => normalize(h));
-            function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn===target||hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
+      const tbody = $('#tbodyRows'); tbody.empty();
+      for(let i=1;i<rows.length;i++){
+        let tr='<tr>';
+        for(let j=0;j<headers.length;j++){
+          let cell = rows[i][j]===undefined?'':rows[i][j];
+          // Iconos Diferencia
+          if(normalize(headers[j]) === 'diferencia'){
+            let val = parseFloat(cell);
+            if(isNaN(val) || val===0) cell = cell + ' <span class="diff-zero">—</span>';
+            else if(val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
+            else cell = cell + ' <span class="diff-positive">▲</span>';
+          }
+          // Formato moneda
+          if(normalize(headers[j]) === 'produccions/.' && cell!==''){
+            let num = parseFloat(cell);
+            if(!isNaN(num)) cell = new Intl.NumberFormat('es-PE', {style:'currency', currency:'PEN'}).format(num);
+          }
+          tr += '<td>'+cell+'</td>';
+        }
+        tr+='</tr>'; 
+        tbody.append(tr);
+      }
 
-            const idxSemana = idxOf(['Semana','semana']);
-            const idxOperacion = idxOf(['Operación','Operacion','operacion','operaciones']);
-            const idxFlota = idxOf(['FLOTA','Flota','flota']);
-            const idxMovil = idxOf(['Móvil','Movil','MOVIL','movil']);
-            const idxServicios = idxOf(['Servicios','servicios']);
-            const idxMeta = idxOf(['Meta','meta']);
+      const headerNorm = headers.map(h => normalize(h));
+      function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
 
-            function uniqueValuesAt(idx){ if(idx<0) return []; const s=new Set(); for(let i=1;i<rows.length;i++) s.add(String(rows[i][idx]??'').trim()); return Array.from(s).filter(x=>x!=='').sort((a,b)=>a.localeCompare(b+'')); }
-            const semanas = uniqueValuesAt(idxSemana), operaciones = uniqueValuesAt(idxOperacion), flotas = uniqueValuesAt(idxFlota);
-            const $fSemana=$('#filterSemana'), $fOperacion=$('#filterOperacion'), $fFlota=$('#filterFlota');
-            semanas.forEach(v=>$fSemana.append(`<option value="${v}">${v}</option>`));
-            operaciones.forEach(v=>$fOperacion.append(`<option value="${v}">${v}</option>`));
-            flotas.forEach(v=>$fFlota.append(`<option value="${v}">${v}</option>`));
+      const idxSemana = idxOf(['Semana','semana']);
+      const idxOperacion = idxOf(['Operación','Operacion','operacion','operaciones']);
+      const idxFlota = idxOf(['FLOTA','Flota','flota']);
+      const idxMovil = idxOf(['Móvil','Movil','MOVIL','movil']);
 
-            let dataTable = $.fn.dataTable.isDataTable('#dataTable') ? $('#dataTable').DataTable().clear().destroy() : null;
-            dataTable = $('#dataTable').DataTable({ responsive:false, scrollX:true, pageLength:25, lengthMenu:[10,25,50,100], order:[] });
+      function uniqueValuesAt(idx){ if(idx<0) return []; const s=new Set(); for(let i=1;i<rows.length;i++) s.add(String(rows[i][idx]??'').trim()); return Array.from(s).filter(x=>x!=='').sort((a,b)=>a.localeCompare(b+'')); }
+      const semanas = uniqueValuesAt(idxSemana), operaciones=uniqueValuesAt(idxOperacion), flotas=uniqueValuesAt(idxFlota);
+      const $fSemana=$('#filterSemana'), $fOperacion=$('#filterOperacion'), $fFlota=$('#filterFlota');
+      semanas.forEach(v=>$fSemana.append(`<option value="${v}">${v}</option>`));
+      operaciones.forEach(v=>$fOperacion.append(`<option value="${v}">${v}</option>`));
+      flotas.forEach(v=>$fFlota.append(`<option value="${v}">${v}</option>`));
 
-            function applyFilters(){
-                if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-                if(idxOperacion>=0){ const val=$('#filterOperacion').val(); dataTable.column(idxOperacion).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-                if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-                if(idxMovil>=0){ const mv=$('#filterMovil').val(); dataTable.column(idxMovil).search(mv?mv:'', false,true,true); }
-                dataTable.draw();
-                updateChartServicios();
-            }
+      let dataTable = $.fn.dataTable.isDataTable('#dataTable') ? $('#dataTable').DataTable().clear().destroy() : null;
+      dataTable = $('#dataTable').DataTable({ 
+        responsive:false,
+        scrollX:true,     
+        pageLength:25, 
+        lengthMenu:[10,25,50,100], 
+        order:[] 
+      });
 
-            $('#filterSemana,#filterOperacion,#filterFlota').on('change',applyFilters);
-            $('#filterMovil').on('input',applyFilters);
-            $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterOperacion,#filterFlota,#filterMovil').val(''); applyFilters(); });
+      function applyFilters(){
+        if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
+        if(idxOperacion>=0){ const val=$('#filterOperacion').val(); dataTable.column(idxOperacion).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
+        if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
+        if(idxMovil>=0){ const mv=$('#filterMovil').val(); dataTable.column(idxMovil).search(mv?mv:'', false,true,true); }
+        dataTable.draw();
+      }
 
-            function updateChartServicios(){
-                const filteredData = dataTable.rows({search:'applied'}).data().toArray();
-                
-                // Agrupamos los datos para Suma de Servicios y Promedio de Meta
-                const groupedData = {};
-                filteredData.forEach(row => {
-                    const key = `${row[idxFlota]} | ${row[idxOperacion]} | SEM.${row[idxSemana]}`;
-                    
-                    if (!groupedData[key]) {
-                        groupedData[key] = {
-                            servicios: 0,
-                            metas: [],
-                        };
-                    }
-                    groupedData[key].servicios += parseFloat(row[idxServicios] ?? 0);
-                    groupedData[key].metas.push(parseFloat(row[idxMeta] ?? 0));
-                });
+      $('#filterSemana,#filterOperacion,#filterFlota').on('change',applyFilters);
+      $('#filterMovil').on('input',applyFilters);
+      $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterOperacion,#filterFlota,#filterMovil').val(''); applyFilters(); });
 
-                // Preparamos los datos para Chart.js
-                const labels = Object.keys(groupedData);
-                const servicios = labels.map(key => groupedData[key].servicios);
-                const promedioMetas = labels.map(key => {
-                    const metas = groupedData[key].metas;
-                    const sum = metas.reduce((a, b) => a + b, 0);
-                    return sum / metas.length;
-                });
-
-                const ctx = document.getElementById('chartServicios').getContext('2d');
-                if(chartServicios) chartServicios.destroy();
-                chartServicios = new Chart(ctx, {
-                    type: 'bar', // Tipo de gráfico base
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { 
-                                type:'bar', 
-                                label:'Suma de Servicios', 
-                                data: servicios, 
-                                backgroundColor:'#D3D3D3', 
-                                order: 2, 
-                                datalabels: {
-                                    align: 'end',
-                                    anchor: 'end',
-                                    formatter: (value, context) => {
-                                        return value.toFixed(0); 
-                                    }
-                                }
-                            },
-                            { 
-                                type:'line', 
-                                label:'Promedio de Meta', 
-                                data: promedioMetas, 
-                                // Color del marcador (la línea en sí)
-                                borderColor:'#FF0000', 
-                                borderWidth: 0, // Ancho de la línea a 0 para que no se vea
-                                fill:false, 
-                                // OJO: pointRadius debe ser > 0 para que el marcador sea visible
-                                pointRadius: 10, 
-                                // El estilo 'line' junto con la rotación crea la línea horizontal
-                                pointStyle: 'line', 
-                                rotation: 90, 
-                                order: 1, 
-                                datalabels: {
-                                    align: 'end',
-                                    anchor: 'end',
-                                    formatter: (value, context) => {
-                                        return value.toFixed(0); 
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive:true,
-                        maintainAspectRatio:false,
-                        interaction: { mode:'index', intersect:false },
-                        plugins:{ 
-                            legend:{ display:true },
-                            tooltip: { 
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        label += context.parsed.y.toFixed(0);
-                                        return label;
-                                    }
-                                }
-                            }
-                        },
-                        scales:{ 
-                            x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
-                                }
-                            },
-                            y:{ 
-                                beginAtZero:true, 
-                                title:{ display:true, text:'Cantidad' } 
-                            }
-                        }
-                    }
-                });
-            }
-
-            applyFilters();
-        })
-        .catch(err=>{ console.error(err); alert('Error cargando data.xlsx: '+err.message); });
+    })
+    .catch(err=>{ console.error(err); alert('Error cargando data.xlsx: '+err.message); });
 });
 </script>
 
