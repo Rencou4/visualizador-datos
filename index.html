@@ -23,24 +23,19 @@
       color:#fff; 
       font-family:'DIN', 'DIN Alternate', sans-serif;
       position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
-    header h1 { margin:0; font-size:20px; font-weight:700; display:inline-block; }
+    header h1 { margin:0; font-size:20px; font-weight:700; }
 
-    /* Iconos navideños a los lados */
-    .icon-left, .icon-right {
-      position:absolute; top:50%; transform:translateY(-50%);
-      width:32px; height:32px;
-    }
-    .icon-left:nth-child(1) { left:10px; }
-    .icon-left:nth-child(2) { left:50px; }
-    .icon-right:nth-child(1) { right:50px; }
-    .icon-right:nth-child(2) { right:10px; }
-
-    /* Marquee vertical */
+    /* Marquee vertical a ambos lados */
     .vertical-marquee {
-      position:absolute; right:110px; top:50%; transform:translateY(-50%);
+      position:absolute; top:50%; transform:translateY(-50%);
       height:40px; overflow:hidden; display:flex; align-items:center;
     }
+    .marquee-left { left:10px; }
+    .marquee-right { right:10px; }
     .marquee-content {
       display:flex; flex-direction:column;
       animation: moveUp 7.5s linear infinite;
@@ -101,18 +96,19 @@
 <body>
 
 <header>
-  <!-- Iconos navideños a la izquierda -->
-  <img src="https://cdn-icons-png.flaticon.com/512/616/616408.png" class="icon-left"/>
-  <img src="https://cdn-icons-png.flaticon.com/512/1048/1048314.png" class="icon-left"/>
-  
+  <!-- Marquee vertical izquierdo -->
+  <div class="vertical-marquee marquee-left">
+    <div class="marquee-content">
+      <div>PREMIOS PARA LOS GANADORES</div>
+      <div>PAVO</div>
+      <div>CANASTA</div>
+    </div>
+  </div>
+
   <h1>CUMPLIMIENTO RACHA NAVIDEÑA</h1>
-  
-  <!-- Iconos navideños a la derecha -->
-  <img src="https://cdn-icons-png.flaticon.com/512/616/616408.png" class="icon-right"/>
-  <img src="https://cdn-icons-png.flaticon.com/512/1048/1048314.png" class="icon-right"/>
-  
-  <!-- Marquee vertical a la derecha -->
-  <div class="vertical-marquee">
+
+  <!-- Marquee vertical derecho -->
+  <div class="vertical-marquee marquee-right">
     <div class="marquee-content">
       <div>PREMIOS PARA LOS GANADORES</div>
       <div>PAVO</div>
@@ -182,7 +178,7 @@ $(document).ready(function(){
       }
 
       const headerNorm = headers.map(h => normalize(h));
-      function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn===target||hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
+      function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
 
       const idxSemana = idxOf(['Semana','semana']);
       const idxOperacion = idxOf(['Operación','Operacion','operacion','operaciones']);
@@ -224,3 +220,4 @@ $(document).ready(function(){
 
 </body>
 </html>
+
