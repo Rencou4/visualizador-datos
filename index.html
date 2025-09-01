@@ -8,7 +8,6 @@
   <!-- SheetJS, jQuery y DataTables (responsive) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css"/>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -16,19 +15,46 @@
 
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 12px; background:#f6f8fb; color:#222; }
-    
+
     header {
+      position: relative;
       background-color:#1721BF; 
       padding:12px 0; 
       text-align:center; 
       color:#fff; 
       font-family:'DIN', 'DIN Alternate', sans-serif;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:12px;
     }
-    header h1 { margin:0; font-size:20px; font-weight:700; }
+    header h1 { margin:0; font-size:20px; font-weight:700; display:inline-block; }
+
+    /* Marquee vertical */
+    .vertical-marquee {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 40px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+    .marquee-content {
+      display: flex;
+      flex-direction: column;
+      animation: moveVertical 15s linear infinite; /* 3 items x 5s */
+    }
+    .marquee-content div {
+      height: 40px; 
+      text-align: center;
+      font-weight: bold;
+      color: yellow;
+      font-size: 14px;
+    }
+    @keyframes moveVertical {
+      0%   { transform: translateY(0%); }
+      33%  { transform: translateY(-100%); }
+      66%  { transform: translateY(-200%); }
+      100% { transform: translateY(0%); }
+    }
 
     .controls {
       display:flex;
@@ -59,17 +85,13 @@
     table.dataTable.no-footer { border-bottom: none; }
     table.dataTable tbody tr:hover { background:#f1f5fb; }
 
-    /* Encabezados con fondo azul y texto blanco */
-    table.dataTable thead th {
-      background-color: #1721BF !important;
-      color: #fff !important;
-      font-weight: bold;
-    }
-
     /* Iconos diferencia */
     .diff-zero { color:#FFD700; font-weight:bold; margin-left:4px; } /* Amarillo */
     .diff-negative { color:#FF0000; font-weight:bold; margin-left:4px; } /* Rojo */
     .diff-positive { color:#00AA00; font-weight:bold; margin-left:4px; } /* Verde */
+
+    /* Encabezados azul */
+    table.dataTable thead th { background:#1721BF; color:#fff; font-weight:bold; }
 
     @media (max-width: 600px) {
       .controls select, .controls input[type="text"] { font-size:13px; padding:10px; }
@@ -80,9 +102,18 @@
 <body>
 
 <header>
-  <span>🎄</span>
-  <h1>CUMPLIMIENTO RACHA NAVIDEÑA - DIRECTO</h1>
-  <span>🎁</span>
+  <span style="margin-right:10px;">🎄</span>
+  <h1>CUMPLIMIENTO RACHA NAVIDEÑA</h1>
+  <span style="margin-left:10px;">🎁</span>
+
+  <!-- Marquee vertical -->
+  <div class="vertical-marquee">
+    <div class="marquee-content">
+      <div>PREMIOS</div>
+      <div>PAVO</div>
+      <div>CANASTA</div>
+    </div>
+  </div>
 </header>
 
 <div class="controls" aria-hidden="false">
@@ -127,13 +158,11 @@ $(document).ready(function(){
         let tr='<tr>';
         for(let j=0;j<headers.length;j++){
           let cell = rows[i][j]===undefined?'':rows[i][j];
-
-          // Formato moneda S/ para Producción S/.
+          
+          // Formato Producción S/.
           if(normalize(headers[j]) === 'produccions/.') {
-            let num = parseFloat(cell);
-            if(!isNaN(num)){
-              cell = 'S/ ' + num.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
-            }
+            let val = parseFloat(cell);
+            if(!isNaN(val)) cell = val.toLocaleString('es-PE', {style:'currency', currency:'PEN'});
           }
 
           // Iconos Diferencia: mostrar número + icono
