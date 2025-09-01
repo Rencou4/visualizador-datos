@@ -16,16 +16,23 @@
 
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 12px; background:#f6f8fb; color:#222; }
-    header { text-align:center; margin-bottom:12px; }
-    h1 { font-size:18px; margin:6px 0; }
-    p.subtitle { text-align:center; margin:0 0 12px 0; color:#555; font-size:13px; }
+    
+    /* HEADER MEJORADO */
+    header {
+      background-color:#1721BF; 
+      padding:12px 0; 
+      text-align:center; 
+      color:#fff; 
+      font-family:'DIN', 'DIN Alternate', sans-serif;
+    }
+    header h1 { margin:0; font-size:20px; font-weight:700; }
 
     .controls {
       display:flex;
       gap:10px;
       flex-wrap:wrap;
       justify-content:center;
-      margin-bottom:12px;
+      margin:12px 0;
     }
 
     .controls select, .controls input[type="text"] {
@@ -43,21 +50,22 @@
       border-radius:10px;
       padding:8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      overflow-x:auto; /* contenedor scroll horizontal */
+      overflow-x:auto; /* scroll horizontal */
     }
 
     table.dataTable.no-footer { border-bottom: none; }
+    table.dataTable tbody tr:hover { background:#f1f5fb; }
+
     @media (max-width: 600px) {
       .controls select, .controls input[type="text"] { font-size:13px; padding:10px; }
-      h1 { font-size:16px; }
+      header h1 { font-size:18px; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>Visualizador — hoja <strong>data</strong></h1>
-  <p class="subtitle">Filtros: Semana · Operación · FLOTA. Buscar por Móvil (dinámico).</p>
+  <h1>CUMPLIMIENTO RACHA NAVIDEÑA</h1>
 </header>
 
 <div class="controls" aria-hidden="false">
@@ -121,8 +129,8 @@ $(document).ready(function(){
 
       let dataTable = $.fn.dataTable.isDataTable('#dataTable') ? $('#dataTable').DataTable().clear().destroy() : null;
       dataTable = $('#dataTable').DataTable({ 
-        responsive:false, // ❌ desactivado para que en móvil se pueda deslizar horizontalmente
-        scrollX:true,     // ✅ scroll horizontal activo
+        responsive:false, // scroll horizontal para móviles
+        scrollX:true,     
         pageLength:25, 
         lengthMenu:[10,25,50,100], 
         order:[] 
@@ -147,4 +155,3 @@ $(document).ready(function(){
 
 </body>
 </html>
-
