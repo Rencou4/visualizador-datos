@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -27,12 +27,12 @@
       align-items:center;
       justify-content:center;
     }
-    header h1 { margin:0; font-size:20px; font-weight:700; }
+    header h1 { margin:0; font-size:20px; font-weight:700; line-height:1.2; }
 
     /* Marquee vertical a ambos lados */
     .vertical-marquee {
       position:absolute; top:50%; transform:translateY(-50%);
-      height:40px; overflow:hidden; display:flex; align-items:center;
+      height:60px; overflow:hidden; display:flex; align-items:center;
     }
     .marquee-left { left:10px; }
     .marquee-right { right:10px; }
@@ -105,7 +105,11 @@
     </div>
   </div>
 
-  <h1>CUMPLIMIENTO RACHA NAVIDEÑA</h1>
+  <!-- Título en dos líneas -->
+  <h1>
+    Racha<br>
+    Navideña
+  </h1>
 
   <!-- Marquee vertical derecho -->
   <div class="vertical-marquee marquee-right">
@@ -159,14 +163,14 @@ $(document).ready(function(){
         let tr='<tr>';
         for(let j=0;j<headers.length;j++){
           let cell = rows[i][j]===undefined?'':rows[i][j];
-          // Iconos Diferencia: mostrar número + icono
+          // Iconos Diferencia
           if(normalize(headers[j]) === 'diferencia'){
             let val = parseFloat(cell);
             if(isNaN(val) || val===0) cell = cell + ' <span class="diff-zero">—</span>';
             else if(val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
             else cell = cell + ' <span class="diff-positive">▲</span>';
           }
-          // Formato moneda para "Producción S/."
+          // Formato moneda
           if(normalize(headers[j]) === 'produccions/.' && cell!==''){
             let num = parseFloat(cell);
             if(!isNaN(num)) cell = new Intl.NumberFormat('es-PE', {style:'currency', currency:'PEN'}).format(num);
