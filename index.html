@@ -1,118 +1,244 @@
-import pandas as pd
-
-# Cargar el archivo Excel (asegúrate de que el archivo esté en la misma carpeta que este script)
-df = pd.read_excel("dispersion.xlsx", sheet_name="data")
-
-# Convertir la tabla a HTML sin índice
-table_html = df.to_html(index=False, classes="table table-striped table-bordered", border=0)
-
-# Crear archivo HTML
-html_content = f"""
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Dashboard de Dispersión</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        body {{
-            background: #f8f9fa;
-            padding: 20px;
-        }}
-        h1 {{
-            text-align: center;
-            margin-bottom: 20px;
-        }}
-        .filters {{
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }}
-        .table-container {{
-            max-height: 600px;
-            overflow-y: auto;
-        }}
-    </style>
+  <meta charset="utf-8" />
+  <title>Visualizador - data (hoja "data")</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- SheetJS, jQuery y DataTables (responsive) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css"/>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 12px; background:#f6f8fb; color:#222; }
+    header { text-align:center; margin-bottom:12px; }
+    h1 { font-size:18px; margin:6px 0; }
+    p.subtitle { text-align:center; margin:0 0 12px 0; color:#555; font-size:13px; }
+
+    .controls {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-bottom:12px;
+    }
+
+    .controls select, .controls input[type="text"] {
+      padding:8px 10px;
+      border-radius:8px;
+      border:1px solid #d0d7de;
+      font-size:14px;
+      min-width:140px;
+    }
+
+    .controls .search-box { min-width:200px; max-width:320px; width:40vw; }
+
+    .table-wrapper {
+      background:#fff;
+      border-radius:10px;
+      padding:8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    /* make DataTable container scroll nicely on small screens */
+    table.dataTable.no-footer { border-bottom: none; }
+    @media (max-width: 600px) {
+      .controls select, .controls input[type="text"] { font-size:13px; padding:10px; }
+      h1 { font-size:16px; }
+    }
+  </style>
 </head>
 <body>
-    <h1>Dashboard de Dispersión</h1>
 
-    <!-- Filtros -->
-    <div class="filters">
-        <div>
-            <label for="semanaFilter">Semana:</label>
-            <select id="semanaFilter" class="form-select">
-                <option value="">Todos</option>
-                {"".join([f'<option value="{val}">{val}</option>' for val in sorted(df['Semana'].dropna().unique())])}
-            </select>
-        </div>
+<header>
+  <h1>Visualizador — hoja <strong>data</strong></h1>
+  <p class="subtitle">Filtros: Semana · Operación · FLOTA. Buscar por Móvil (dinámico).</p>
+</header>
 
-        <div>
-            <label for="operacionFilter">Operación:</label>
-            <select id="operacionFilter" class="form-select">
-                <option value="">Todos</option>
-                {"".join([f'<option value="{val}">{val}</option>' for val in sorted(df['Operación'].dropna().unique())])}
-            </select>
-        </div>
+<!-- FILTROS -->
+<div class="controls" aria-hidden="false">
+  <select id="filterSemana"><option value="">Semana: Todas</option></select>
+  <select id="filterOperacion"><option value="">Operación: Todas</option></select>
+  <select id="filterFlota"><option value="">FLOTA: Todas</option></select>
+  <input id="filterMovil" class="search-box" type="text" placeholder="Buscar MOVIL (escribe para filtrar dinámicamente)"/>
+  <button id="clearFilters" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Limpiar</button>
+</div>
 
-        <div>
-            <label for="flotaFilter">FLOTA:</label>
-            <select id="flotaFilter" class="form-select">
-                <option value="">Todos</option>
-                {"".join([f'<option value="{val}">{val}</option>' for val in sorted(df['FLOTA'].dropna().unique())])}
-            </select>
-        </div>
+<!-- TABLA -->
+<div class="table-wrapper">
+  <table id="dataTable" class="display responsive nowrap" style="width:100%">
+    <thead><tr id="theadRow"></tr></thead>
+    <tbody id="tbodyRows"></tbody>
+  </table>
+</div>
 
-        <div>
-            <label for="movilSearch">Móvil:</label>
-            <input type="text" id="movilSearch" class="form-control" placeholder="Buscar móvil...">
-        </div>
-    </div>
+<script>
+/* ---------- Helpers ---------- */
+function normalize(s){
+  if(s === undefined || s === null) return "";
+  return String(s)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // quitar tildes
+    .replace(/\s+/g,'')              // quitar espacios
+    .replace(/[^a-zA-Z0-9_./-]/g,'') // quitar caracteres raros
+    .toLowerCase();
+}
+function escapeRegex(s){
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
-    <!-- Tabla -->
-    <div class="table-container">
-        {table_html}
-    </div>
+/* ---------- MAIN: cargar data.xlsx (hoja "data") ---------- */
+$(document).ready(function(){
+  // Intentar cargar data.xlsx desde la raíz del repo
+  fetch('data.xlsx')
+    .then(r => {
+      if (!r.ok) throw new Error('No se pudo descargar data.xlsx (status ' + r.status + '). Asegura que el archivo existe en la raíz del repo y se llame exactamente data.xlsx');
+      return r.arrayBuffer();
+    })
+    .then(ab => {
+      const workbook = XLSX.read(ab, {type:'array'});
+      // tomar hoja "data" (exact match), si no existe tomar primera hoja
+      const sheetName = workbook.SheetNames.includes('data') ? 'data' : workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
 
-    <script>
-        $(document).ready(function() {{
-            function filtrar() {{
-                var semana = $("#semanaFilter").val().toLowerCase();
-                var operacion = $("#operacionFilter").val().toLowerCase();
-                var flota = $("#flotaFilter").val().toLowerCase();
-                var movil = $("#movilSearch").val().toLowerCase();
+      if(!rows || rows.length < 1){
+        alert('La hoja está vacía o no tiene encabezados.');
+        return;
+      }
 
-                $("table tbody tr").each(function() {{
-                    var row = $(this);
-                    var rowSemana = row.find("td:eq(1)").text().toLowerCase();   // Columna Semana
-                    var rowMovil = row.find("td:eq(2)").text().toLowerCase();    // Columna Móvil
-                    var rowOperacion = row.find("td:eq(3)").text().toLowerCase();// Columna Operación
-                    var rowFlota = row.find("td:eq(4)").text().toLowerCase();    // Columna FLOTA
+      const headers = rows[0].map(h => h === null ? "" : h);
+      // render headers
+      const thead = $('#theadRow');
+      thead.empty();
+      headers.forEach(h => thead.append('<th>'+ (h||'') + '</th>'));
 
-                    var show = true;
+      // build tbody
+      const tbody = $('#tbodyRows');
+      tbody.empty();
+      for(let i=1;i<rows.length;i++){
+        const r = rows[i];
+        let tr = '<tr>';
+        for(let j=0;j<headers.length;j++){
+          tr += '<td>' + (r[j] === undefined ? '' : r[j]) + '</td>';
+        }
+        tr += '</tr>';
+        tbody.append(tr);
+      }
 
-                    if (semana && rowSemana !== semana) show = false;
-                    if (operacion && rowOperacion !== operacion) show = false;
-                    if (flota && rowFlota !== flota) show = false;
-                    if (movil && !rowMovil.includes(movil)) show = false;
+      // Normalizar nombres para detectar índices
+      const headerNorm = headers.map(h => normalize(h));
+      function idxOf(names){
+        for(const nm of names){
+          const target = normalize(nm);
+          const idx = headerNorm.findIndex(hn => hn === target || hn.includes(target) || target.includes(hn));
+          if(idx !== -1) return idx;
+        }
+        return -1;
+      }
 
-                    row.toggle(show);
-                }});
-            }}
+      // Buscar índices (variantes)
+      const idxSemana    = idxOf(['Semana','semana']);
+      const idxOperacion = idxOf(['Operación','Operacion','operacion','operaciones']);
+      const idxFlota     = idxOf(['FLOTA','Flota','flota']);
+      const idxMovil     = idxOf(['Móvil','Movil','MOVIL','movil']);
 
-            $("#semanaFilter, #operacionFilter, #flotaFilter").on("change", filtrar);
-            $("#movilSearch").on("keyup", filtrar);
-        }});
-    </script>
+      // Llenar selects con valores únicos (si índice existe)
+      function uniqueValuesAt(idx){
+        if(idx < 0) return [];
+        const s = new Set();
+        for(let i=1;i<rows.length;i++){
+          s.add( String(rows[i][idx] ?? '').trim() );
+        }
+        return Array.from(s).filter(x => x !== '').sort((a,b) => a.localeCompare(b+''));
+      }
+
+      const semanas = uniqueValuesAt(idxSemana);
+      const operaciones = uniqueValuesAt(idxOperacion);
+      const flotas = uniqueValuesAt(idxFlota);
+
+      const $fSemana = $('#filterSemana');
+      const $fOperacion = $('#filterOperacion');
+      const $fFlota = $('#filterFlota');
+
+      semanas.forEach(v => $fSemana.append(`<option value="${v}">${v}</option>`));
+      operaciones.forEach(v => $fOperacion.append(`<option value="${v}">${v}</option>`));
+      flotas.forEach(v => $fFlota.append(`<option value="${v}">${v}</option>`));
+
+      // Inicializar DataTable (destruir si ya existe)
+      let dataTable = null;
+      if ( $.fn.dataTable.isDataTable('#dataTable') ) {
+        dataTable = $('#dataTable').DataTable();
+        dataTable.clear().destroy();
+      }
+
+      dataTable = $('#dataTable').DataTable({
+        responsive: true,
+        pageLength: 25,
+        lengthMenu: [10,25,50,100],
+        // evitar doble orden inicial por DataTables
+        order: []
+      });
+
+      // Función que aplica filtros combinados
+      function applyFilters(){
+        // Semana exact match (if idx exists)
+        if(idxSemana >= 0){
+          const val = $('#filterSemana').val();
+          if(val) dataTable.column(idxSemana).search('^' + escapeRegex(val) + '$', true, false);
+          else dataTable.column(idxSemana).search('');
+        }
+        if(idxOperacion >= 0){
+          const val = $('#filterOperacion').val();
+          if(val) dataTable.column(idxOperacion).search('^' + escapeRegex(val) + '$', true, false);
+          else dataTable.column(idxOperacion).search('');
+        }
+        if(idxFlota >= 0){
+          const val = $('#filterFlota').val();
+          if(val) dataTable.column(idxFlota).search('^' + escapeRegex(val) + '$', true, false);
+          else dataTable.column(idxFlota).search('');
+        }
+        // Movil: búsqueda parcial dinámica (contains), case-insensitive
+        if(idxMovil >= 0){
+          const mv = $('#filterMovil').val();
+          if(mv) dataTable.column(idxMovil).search(mv, false, true, true);
+          else dataTable.column(idxMovil).search('');
+        }
+        dataTable.draw();
+      }
+
+      // Eventos
+      $('#filterSemana').on('change', applyFilters);
+      $('#filterOperacion').on('change', applyFilters);
+      $('#filterFlota').on('change', applyFilters);
+      $('#filterMovil').on('input', applyFilters);
+      $('#clearFilters').on('click', function(){
+        $('#filterSemana').val('');
+        $('#filterOperacion').val('');
+        $('#filterFlota').val('');
+        $('#filterMovil').val('');
+        applyFilters();
+      });
+
+      // si no encuentra índices clave, avisa en consola
+      if(idxMovil === -1) console.warn('No se encontró columna MOVIL (busca variantes en encabezado).');
+      if(idxFlota === -1) console.warn('No se encontró columna FLOTA.');
+      if(idxSemana === -1) console.warn('No se encontró columna Semana.');
+      if(idxOperacion === -1) console.warn('No se encontró columna Operación.');
+
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Error cargando data.xlsx: ' + err.message);
+    });
+});
+</script>
+
 </body>
 </html>
-"""
-
-with open("dashboard.html", "w", encoding="utf-8") as f:
-    f.write(html_content)
-
-print("✅ Dashboard generado: abre el archivo 'dashboard.html'")
 
