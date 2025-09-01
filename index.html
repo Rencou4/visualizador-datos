@@ -114,7 +114,7 @@ $(document).ready(function(){
       const idxMeta = idxOf(['Meta','meta']);
 
       function uniqueValuesAt(idx){ if(idx<0) return []; const s=new Set(); for(let i=1;i<rows.length;i++) s.add(String(rows[i][idx]??'').trim()); return Array.from(s).filter(x=>x!=='').sort((a,b)=>a.localeCompare(b+'')); }
-      const semanas = uniqueValuesAt(idxSemana), operaciones=uniqueValuesAt(idxOperacion), flotas=uniqueValuesAt(idxFlota);
+      const semanas = uniqueValuesAt(idxSemana), operaciones = uniqueValuesAt(idxOperacion), flotas = uniqueValuesAt(idxFlota);
       const $fSemana=$('#filterSemana'), $fOperacion=$('#filterOperacion'), $fFlota=$('#filterFlota');
       semanas.forEach(v=>$fSemana.append(`<option value="${v}">${v}</option>`));
       operaciones.forEach(v=>$fOperacion.append(`<option value="${v}">${v}</option>`));
@@ -138,8 +138,6 @@ $(document).ready(function(){
 
       function updateChartServicios(){
         const filteredData = dataTable.rows({search:'applied'}).data().toArray();
-
-        // Ordenar por semana ascendente
         filteredData.sort((a,b)=>parseInt(a[idxSemana]??0)-parseInt(b[idxSemana]??0));
 
         const labels = filteredData.map(r => `${r[idxFlota]} | ${r[idxOperacion]} | ${r[idxSemana]}`);
@@ -149,12 +147,11 @@ $(document).ready(function(){
         const ctx = document.getElementById('chartServicios').getContext('2d');
         if(chartServicios) chartServicios.destroy();
         chartServicios = new Chart(ctx, {
-          type: 'bar',
           data: {
             labels: labels,
             datasets: [
-              { label:'Suma Servicios', data: servicios, backgroundColor:'#A9A9A9', yAxisID:'y' },
-              { label:'Meta', data: metas, type:'scatter', pointBackgroundColor:'#ff7f0e', pointBorderColor:'#ff7f0e', pointRadius:11, showLine:false }
+              { type:'bar', label:'Suma Servicios', data: servicios, backgroundColor:'#A9A9A9', order:1 },
+              { type:'line', label:'Meta', data: metas, borderColor:'#FF7F0E', borderWidth:11, fill:false, pointRadius:0, order:2 }
             ]
           },
           options: {
