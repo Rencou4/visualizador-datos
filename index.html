@@ -177,7 +177,6 @@ $(document).ready(function(){
                                 data: servicios, 
                                 backgroundColor:'#D3D3D3', 
                                 order: 2, 
-                                // Opcional: mostrar etiquetas encima de las barras
                                 datalabels: {
                                     align: 'end',
                                     anchor: 'end',
@@ -190,11 +189,10 @@ $(document).ready(function(){
                                 type:'line', 
                                 label:'Promedio de Meta', 
                                 data: promedioMetas, 
-                                borderColor:'#7CFC00', 
-                                borderWidth: 0, // Establecemos el ancho de la línea en 0 para que no sea visible
+                                borderColor:'#00B300', // Color verde intenso
+                                borderWidth: 11, // Grosor de 11 píxeles
                                 fill:false, 
-                                pointRadius: 5, // Aumenta el radio del punto para que sea más visible
-                                pointStyle: 'rectRot', // Estilo de punto: un cuadrado rotado (rombo)
+                                pointRadius: 0, // Oculta los puntos para que solo se vea la línea
                                 order: 1, 
                                 datalabels: {
                                     align: 'end',
