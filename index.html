@@ -171,4 +171,18 @@ $(document).ready(function(){
         if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
         if(idxOperacion>=0){ const val=$('#filterOperacion').val(); dataTable.column(idxOperacion).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
         if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-        if(idxMovil>=
+        if(idxMovil>=0){ const mv=$('#filterMovil').val(); dataTable.column(idxMovil).search(mv?mv:'', false,true,true); }
+        dataTable.draw();
+      }
+
+      $('#filterSemana,#filterOperacion,#filterFlota').on('change',applyFilters);
+      $('#filterMovil').on('input',applyFilters);
+      $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterOperacion,#filterFlota,#filterMovil').val(''); applyFilters(); });
+
+    })
+    .catch(err=>{ console.error(err); alert('Error cargando data.xlsx: '+err.message); });
+});
+</script>
+
+</body>
+</html>
