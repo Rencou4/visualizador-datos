@@ -45,7 +45,6 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    /* make DataTable container scroll nicely on small screens */
     table.dataTable.no-footer { border-bottom: none; }
     @media (max-width: 600px) {
       .controls select, .controls input[type="text"] { font-size:13px; padding:10px; }
@@ -60,7 +59,6 @@
   <p class="subtitle">Filtros: Semana · Operación · FLOTA. Buscar por Móvil (dinámico).</p>
 </header>
 
-<!-- FILTROS -->
 <div class="controls" aria-hidden="false">
   <select id="filterSemana"><option value="">Semana: Todas</option></select>
   <select id="filterOperacion"><option value="">Operación: Todas</option></select>
@@ -69,7 +67,6 @@
   <button id="clearFilters" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Limpiar</button>
 </div>
 
-<!-- TABLA -->
 <div class="table-wrapper">
   <table id="dataTable" class="display responsive nowrap" style="width:100%">
     <thead><tr id="theadRow"></tr></thead>
@@ -78,164 +75,66 @@
 </div>
 
 <script>
-/* ---------- Helpers ---------- */
 function normalize(s){
   if(s === undefined || s === null) return "";
-  return String(s)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // quitar tildes
-    .replace(/\s+/g,'')              // quitar espacios
-    .replace(/[^a-zA-Z0-9_./-]/g,'') // quitar caracteres raros
-    .toLowerCase();
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g,'').replace(/[^a-zA-Z0-9_./-]/g,'').toLowerCase();
 }
-function escapeRegex(s){
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-/* ---------- MAIN: cargar data.xlsx (hoja "data") ---------- */
 $(document).ready(function(){
-  // Intentar cargar data.xlsx desde la raíz del repo
   fetch('data.xlsx')
-    .then(r => {
-      if (!r.ok) throw new Error('No se pudo descargar data.xlsx (status ' + r.status + '). Asegura que el archivo existe en la raíz del repo y se llame exactamente data.xlsx');
-      return r.arrayBuffer();
-    })
+    .then(r => { if(!r.ok) throw new Error('No se pudo descargar data.xlsx'); return r.arrayBuffer(); })
     .then(ab => {
       const workbook = XLSX.read(ab, {type:'array'});
-      // tomar hoja "data" (exact match), si no existe tomar primera hoja
       const sheetName = workbook.SheetNames.includes('data') ? 'data' : workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
 
-      if(!rows || rows.length < 1){
-        alert('La hoja está vacía o no tiene encabezados.');
-        return;
-      }
+      if(!rows || rows.length<1){ alert('La hoja está vacía o no tiene encabezados.'); return; }
 
-      const headers = rows[0].map(h => h === null ? "" : h);
-      // render headers
-      const thead = $('#theadRow');
-      thead.empty();
+      const headers = rows[0].map(h => h===null?"":h);
+      const thead = $('#theadRow'); thead.empty();
       headers.forEach(h => thead.append('<th>'+ (h||'') + '</th>'));
 
-      // build tbody
-      const tbody = $('#tbodyRows');
-      tbody.empty();
+      const tbody = $('#tbodyRows'); tbody.empty();
       for(let i=1;i<rows.length;i++){
-        const r = rows[i];
-        let tr = '<tr>';
-        for(let j=0;j<headers.length;j++){
-          tr += '<td>' + (r[j] === undefined ? '' : r[j]) + '</td>';
-        }
-        tr += '</tr>';
-        tbody.append(tr);
+        let tr='<tr>';
+        for(let j=0;j<headers.length;j++) tr += '<td>'+(rows[i][j]===undefined?'':rows[i][j])+'</td>';
+        tr+='</tr>'; tbody.append(tr);
       }
 
-      // Normalizar nombres para detectar índices
       const headerNorm = headers.map(h => normalize(h));
-      function idxOf(names){
-        for(const nm of names){
-          const target = normalize(nm);
-          const idx = headerNorm.findIndex(hn => hn === target || hn.includes(target) || target.includes(hn));
-          if(idx !== -1) return idx;
-        }
-        return -1;
-      }
+      function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn===target||hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
 
-      // Buscar índices (variantes)
-      const idxSemana    = idxOf(['Semana','semana']);
+      const idxSemana = idxOf(['Semana','semana']);
       const idxOperacion = idxOf(['Operación','Operacion','operacion','operaciones']);
-      const idxFlota     = idxOf(['FLOTA','Flota','flota']);
-      const idxMovil     = idxOf(['Móvil','Movil','MOVIL','movil']);
+      const idxFlota = idxOf(['FLOTA','Flota','flota']);
+      const idxMovil = idxOf(['Móvil','Movil','MOVIL','movil']);
 
-      // Llenar selects con valores únicos (si índice existe)
-      function uniqueValuesAt(idx){
-        if(idx < 0) return [];
-        const s = new Set();
-        for(let i=1;i<rows.length;i++){
-          s.add( String(rows[i][idx] ?? '').trim() );
-        }
-        return Array.from(s).filter(x => x !== '').sort((a,b) => a.localeCompare(b+''));
-      }
+      function uniqueValuesAt(idx){ if(idx<0) return []; const s=new Set(); for(let i=1;i<rows.length;i++) s.add(String(rows[i][idx]??'').trim()); return Array.from(s).filter(x=>x!=='').sort((a,b)=>a.localeCompare(b+'')); }
+      const semanas = uniqueValuesAt(idxSemana), operaciones=uniqueValuesAt(idxOperacion), flotas=uniqueValuesAt(idxFlota);
+      const $fSemana=$('#filterSemana'), $fOperacion=$('#filterOperacion'), $fFlota=$('#filterFlota');
+      semanas.forEach(v=>$fSemana.append(`<option value="${v}">${v}</option>`));
+      operaciones.forEach(v=>$fOperacion.append(`<option value="${v}">${v}</option>`));
+      flotas.forEach(v=>$fFlota.append(`<option value="${v}">${v}</option>`));
 
-      const semanas = uniqueValuesAt(idxSemana);
-      const operaciones = uniqueValuesAt(idxOperacion);
-      const flotas = uniqueValuesAt(idxFlota);
+      let dataTable = $.fn.dataTable.isDataTable('#dataTable') ? $('#dataTable').DataTable().clear().destroy() : null;
+      dataTable = $('#dataTable').DataTable({ responsive:true, scrollX:true, pageLength:25, lengthMenu:[10,25,50,100], order:[] });
 
-      const $fSemana = $('#filterSemana');
-      const $fOperacion = $('#filterOperacion');
-      const $fFlota = $('#filterFlota');
-
-      semanas.forEach(v => $fSemana.append(`<option value="${v}">${v}</option>`));
-      operaciones.forEach(v => $fOperacion.append(`<option value="${v}">${v}</option>`));
-      flotas.forEach(v => $fFlota.append(`<option value="${v}">${v}</option>`));
-
-      // Inicializar DataTable (destruir si ya existe)
-      let dataTable = null;
-      if ( $.fn.dataTable.isDataTable('#dataTable') ) {
-        dataTable = $('#dataTable').DataTable();
-        dataTable.clear().destroy();
-      }
-
-      dataTable = $('#dataTable').DataTable({
-        responsive: true,
-        pageLength: 25,
-        lengthMenu: [10,25,50,100],
-        // evitar doble orden inicial por DataTables
-        order: []
-      });
-
-      // Función que aplica filtros combinados
       function applyFilters(){
-        // Semana exact match (if idx exists)
-        if(idxSemana >= 0){
-          const val = $('#filterSemana').val();
-          if(val) dataTable.column(idxSemana).search('^' + escapeRegex(val) + '$', true, false);
-          else dataTable.column(idxSemana).search('');
-        }
-        if(idxOperacion >= 0){
-          const val = $('#filterOperacion').val();
-          if(val) dataTable.column(idxOperacion).search('^' + escapeRegex(val) + '$', true, false);
-          else dataTable.column(idxOperacion).search('');
-        }
-        if(idxFlota >= 0){
-          const val = $('#filterFlota').val();
-          if(val) dataTable.column(idxFlota).search('^' + escapeRegex(val) + '$', true, false);
-          else dataTable.column(idxFlota).search('');
-        }
-        // Movil: búsqueda parcial dinámica (contains), case-insensitive
-        if(idxMovil >= 0){
-          const mv = $('#filterMovil').val();
-          if(mv) dataTable.column(idxMovil).search(mv, false, true, true);
-          else dataTable.column(idxMovil).search('');
-        }
+        if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
+        if(idxOperacion>=0){ const val=$('#filterOperacion').val(); dataTable.column(idxOperacion).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
+        if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
+        if(idxMovil>=0){ const mv=$('#filterMovil').val(); dataTable.column(idxMovil).search(mv?mv:'', false,true,true); }
         dataTable.draw();
       }
 
-      // Eventos
-      $('#filterSemana').on('change', applyFilters);
-      $('#filterOperacion').on('change', applyFilters);
-      $('#filterFlota').on('change', applyFilters);
-      $('#filterMovil').on('input', applyFilters);
-      $('#clearFilters').on('click', function(){
-        $('#filterSemana').val('');
-        $('#filterOperacion').val('');
-        $('#filterFlota').val('');
-        $('#filterMovil').val('');
-        applyFilters();
-      });
-
-      // si no encuentra índices clave, avisa en consola
-      if(idxMovil === -1) console.warn('No se encontró columna MOVIL (busca variantes en encabezado).');
-      if(idxFlota === -1) console.warn('No se encontró columna FLOTA.');
-      if(idxSemana === -1) console.warn('No se encontró columna Semana.');
-      if(idxOperacion === -1) console.warn('No se encontró columna Operación.');
+      $('#filterSemana,#filterOperacion,#filterFlota').on('change',applyFilters);
+      $('#filterMovil').on('input',applyFilters);
+      $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterOperacion,#filterFlota,#filterMovil').val(''); applyFilters(); });
 
     })
-    .catch(err => {
-      console.error(err);
-      alert('Error cargando data.xlsx: ' + err.message);
-    });
+    .catch(err=>{ console.error(err); alert('Error cargando data.xlsx: '+err.message); });
 });
 </script>
 
