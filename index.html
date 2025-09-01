@@ -12,6 +12,8 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
 
     <style>
         body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 12px; background:#f6f8fb; color:#222; }
@@ -141,8 +143,7 @@ $(document).ready(function(){
                 // Agrupamos los datos para Suma de Servicios y Promedio de Meta
                 const groupedData = {};
                 filteredData.forEach(row => {
-                    // Crea una clave única para cada grupo (por ejemplo, "Flota | Operación | Semana")
-                    const key = `${row[idxFlota]} | ${row[idxOperacion]} | ${row[idxSemana]}`;
+                    const key = `${row[idxFlota]} | ${row[idxOperacion]} | SEM.${row[idxSemana]}`;
                     
                     if (!groupedData[key]) {
                         groupedData[key] = {
@@ -174,24 +175,32 @@ $(document).ready(function(){
                                 type:'bar', 
                                 label:'Suma de Servicios', 
                                 data: servicios, 
-                                backgroundColor:'#D3D3D3', // Color de las barras
-                                order: 2 // Asegura que las barras estén debajo de la línea
+                                backgroundColor:'#D3D3D3', 
+                                order: 2, 
+                                // Opcional: mostrar etiquetas encima de las barras
+                                datalabels: {
+                                    align: 'end',
+                                    anchor: 'end',
+                                    formatter: (value, context) => {
+                                        return value.toFixed(0); 
+                                    }
+                                }
                             },
                             { 
                                 type:'line', 
                                 label:'Promedio de Meta', 
                                 data: promedioMetas, 
-                                borderColor:'#7CFC00', // Color de la línea de la meta
-                                borderWidth: 3, // Grosor de la línea
+                                borderColor:'#7CFC00', 
+                                borderWidth: 0, // Establecemos el ancho de la línea en 0 para que no sea visible
                                 fill:false, 
-                                pointRadius: 0, 
-                                order: 1, // Asegura que la línea esté por encima de las barras
-                                // Usamos el plugin de Chart.js para mostrar el valor del promedio
+                                pointRadius: 5, // Aumenta el radio del punto para que sea más visible
+                                pointStyle: 'rectRot', // Estilo de punto: un cuadrado rotado (rombo)
+                                order: 1, 
                                 datalabels: {
                                     align: 'end',
                                     anchor: 'end',
                                     formatter: (value, context) => {
-                                        return value.toFixed(0); // Muestra el valor de la meta sin decimales
+                                        return value.toFixed(0); 
                                     }
                                 }
                             }
@@ -203,7 +212,7 @@ $(document).ready(function(){
                         interaction: { mode:'index', intersect:false },
                         plugins:{ 
                             legend:{ display:true },
-                            tooltip: { // Configuración del tooltip para mostrar ambos valores
+                            tooltip: { 
                                 callbacks: {
                                     label: function(context) {
                                         let label = context.dataset.label || '';
@@ -218,7 +227,6 @@ $(document).ready(function(){
                         },
                         scales:{ 
                             x: {
-                                // Puedes rotar las etiquetas si son muy largas
                                 ticks: {
                                     maxRotation: 45,
                                     minRotation: 45
