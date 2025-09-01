@@ -142,7 +142,7 @@ $(document).ready(function(){
         // Ordenar por semana ascendente
         filteredData.sort((a,b)=>parseInt(a[idxSemana]??0)-parseInt(b[idxSemana]??0));
 
-        const labels = filteredData.map(r => r[idxMovil] + ' | ' + r[idxSemana] + ' | ' + r[idxOperacion]);
+        const labels = filteredData.map(r => `${r[idxFlota]} | ${r[idxOperacion]} | ${r[idxSemana]}`);
         const servicios = filteredData.map(r => parseFloat(r[idxServicios]??0));
         const metas = filteredData.map(r => parseFloat(r[idxMeta]??0));
 
@@ -153,25 +153,21 @@ $(document).ready(function(){
           data: {
             labels: labels,
             datasets: [
-              { label:'Suma Servicios', data: servicios, backgroundColor:'#1f77b4', yAxisID:'y' },
-              { label:'Meta', data: metas, type:'line', borderColor:'#ff7f0e', borderWidth:2, fill:false, yAxisID:'y' }
+              { label:'Suma Servicios', data: servicios, backgroundColor:'#A9A9A9', yAxisID:'y' },
+              { label:'Meta', data: metas, type:'scatter', pointBackgroundColor:'#ff7f0e', pointBorderColor:'#ff7f0e', pointRadius:11, showLine:false }
             ]
           },
           options: {
             responsive:true,
             maintainAspectRatio:false,
             interaction: { mode:'index', intersect:false },
-            stacked:false,
             plugins:{ legend:{ display:true } },
-            scales:{
-              y:{ beginAtZero:true, title:{ display:true, text:'Cantidad' } },
-            }
+            scales:{ y:{ beginAtZero:true, title:{ display:true, text:'Cantidad' } } }
           }
         });
       }
 
       updateChartServicios();
-
     })
     .catch(err=>{ console.error(err); alert('Error cargando data.xlsx: '+err.message); });
 });
