@@ -43,6 +43,7 @@
       border-radius:10px;
       padding:8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      overflow-x:auto; /* contenedor scroll horizontal */
     }
 
     table.dataTable.no-footer { border-bottom: none; }
@@ -119,7 +120,13 @@ $(document).ready(function(){
       flotas.forEach(v=>$fFlota.append(`<option value="${v}">${v}</option>`));
 
       let dataTable = $.fn.dataTable.isDataTable('#dataTable') ? $('#dataTable').DataTable().clear().destroy() : null;
-      dataTable = $('#dataTable').DataTable({ responsive:true, scrollX:true, pageLength:25, lengthMenu:[10,25,50,100], order:[] });
+      dataTable = $('#dataTable').DataTable({ 
+        responsive:true, 
+        scrollX:true,   // 👈 Habilita scroll horizontal para móviles y desktop
+        pageLength:25, 
+        lengthMenu:[10,25,50,100], 
+        order:[] 
+      });
 
       function applyFilters(){
         if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
@@ -140,4 +147,3 @@ $(document).ready(function(){
 
 </body>
 </html>
-
