@@ -15,37 +15,29 @@
   <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
   <style>
-    /* Fondo navideño */
     body { 
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
-      margin: 0; 
-      background: linear-gradient(to bottom, #ffefef, #e0ffe0); 
+      margin: 12px; 
+      background:#f6f8fb; 
       color:#222; 
     }
-
-    /* Franja azul superior con decoración navideña */
+    
     header {
       background-color:#1721BF; 
-      padding:16px 0; 
+      padding:12px 0; 
       text-align:center; 
       color:#fff; 
       font-family:'DIN', 'DIN Alternate', sans-serif;
-      position: relative;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:12px;
     }
     header h1 { 
       margin:0; 
       font-size:20px; 
       font-weight:700; 
-    }
-    header::before {
-      content: "🎄 ✨ 🎅 ❄️ 🎁";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      text-align: center;
-      font-size: 18px;
-      padding-top:4px;
+      display:inline-block;
     }
 
     .controls {
@@ -56,7 +48,7 @@
       margin:12px 0;
     }
 
-    .controls select, .controls input[type="text"], .controls button {
+    .controls select, .controls input[type="text"] {
       padding:8px 10px;
       border-radius:8px;
       border:1px solid #d0d7de;
@@ -77,10 +69,10 @@
     table.dataTable.no-footer { border-bottom: none; }
     table.dataTable tbody tr:hover { background:#f1f5fb; }
 
-    /* Iconos Diferencia */
-    .diff-zero { color:#FFD700; font-weight:bold; margin-left:4px; } /* Amarillo / ❄️ */
-    .diff-negative { color:#FF0000; font-weight:bold; margin-left:4px; } /* Rojo / 🎅 */
-    .diff-positive { color:#00AA00; font-weight:bold; margin-left:4px; } /* Verde / 🎁 */
+    /* Iconos diferencia */
+    .diff-zero { color:#FFD700; font-weight:bold; margin-left:4px; } /* Amarillo */
+    .diff-negative { color:#FF0000; font-weight:bold; margin-left:4px; } /* Rojo */
+    .diff-positive { color:#00AA00; font-weight:bold; margin-left:4px; } /* Verde */
 
     @media (max-width: 600px) {
       .controls select, .controls input[type="text"] { font-size:13px; padding:10px; }
@@ -91,7 +83,9 @@
 <body>
 
 <header>
+  <span>🎄</span>
   <h1>CUMPLIMIENTO RACHA NAVIDEÑA</h1>
+  <span>🎁</span>
 </header>
 
 <div class="controls" aria-hidden="false">
@@ -99,7 +93,7 @@
   <select id="filterOperacion"><option value="">Operación: Todas</option></select>
   <select id="filterFlota"><option value="">FLOTA: Todas</option></select>
   <input id="filterMovil" class="search-box" type="text" placeholder="Buscar MOVIL (dinámico)"/>
-  <button id="clearFilters">Limpiar</button>
+  <button id="clearFilters" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Limpiar</button>
 </div>
 
 <div class="table-wrapper">
@@ -136,11 +130,12 @@ $(document).ready(function(){
         let tr='<tr>';
         for(let j=0;j<headers.length;j++){
           let cell = rows[i][j]===undefined?'':rows[i][j];
+          // Mantener iconos Diferencia originales
           if(normalize(headers[j]) === 'diferencia'){
             let val = parseFloat(cell);
-            if(isNaN(val) || val===0) cell = cell + ' <span class="diff-zero">❄️</span>';
-            else if(val < 0) cell = cell + ' <span class="diff-negative">🎅</span>';
-            else cell = cell + ' <span class="diff-positive">🎁</span>';
+            if(isNaN(val) || val===0) cell = cell + ' <span class="diff-zero">—</span>';
+            else if(val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
+            else cell = cell + ' <span class="diff-positive">▲</span>';
           }
           tr += '<td>'+cell+'</td>';
         }
@@ -176,18 +171,4 @@ $(document).ready(function(){
         if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
         if(idxOperacion>=0){ const val=$('#filterOperacion').val(); dataTable.column(idxOperacion).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
         if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-        if(idxMovil>=0){ const mv=$('#filterMovil').val(); dataTable.column(idxMovil).search(mv?mv:'', false,true,true); }
-        dataTable.draw();
-      }
-
-      $('#filterSemana,#filterOperacion,#filterFlota').on('change',applyFilters);
-      $('#filterMovil').on('input',applyFilters);
-      $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterOperacion,#filterFlota,#filterMovil').val(''); applyFilters(); });
-
-    })
-    .catch(err=>{ console.error(err); alert('Error cargando data.xlsx: '+err.message); });
-});
-</script>
-
-</body>
-</html>
+        if(idxMovil>=
