@@ -5,7 +5,7 @@
   <title>Visualizador - data (hoja "data")</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- SheetJS, jQuery y DataTables -->
+  <!-- SheetJS, jQuery y DataTables (responsive) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
@@ -15,12 +15,7 @@
   <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
   <style>
-    body { 
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
-      margin: 12px; 
-      background:#f6f8fb; 
-      color:#222; 
-    }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 12px; background:#f6f8fb; color:#222; }
     
     header {
       background-color:#1721BF; 
@@ -29,16 +24,11 @@
       color:#fff; 
       font-family:'DIN', 'DIN Alternate', sans-serif;
       display:flex;
-      justify-content:center;
       align-items:center;
+      justify-content:center;
       gap:12px;
     }
-    header h1 { 
-      margin:0; 
-      font-size:20px; 
-      font-weight:700; 
-      display:inline-block;
-    }
+    header h1 { margin:0; font-size:20px; font-weight:700; }
 
     .controls {
       display:flex;
@@ -84,7 +74,7 @@
 
 <header>
   <span>🎄</span>
-  <h1>CUMPLIMIENTO RACHA NAVIDEÑA - DIRECTO</h1>
+  <h1>CUMPLIMIENTO RACHA NAVIDEÑA</h1>
   <span>🎁</span>
 </header>
 
@@ -130,13 +120,23 @@ $(document).ready(function(){
         let tr='<tr>';
         for(let j=0;j<headers.length;j++){
           let cell = rows[i][j]===undefined?'':rows[i][j];
-          // Mantener iconos Diferencia originales
+
+          // Formato moneda S/ para Producción S/.
+          if(normalize(headers[j]) === 'produccions/.') {
+            let num = parseFloat(cell);
+            if(!isNaN(num)){
+              cell = 'S/ ' + num.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
+            }
+          }
+
+          // Iconos Diferencia: mostrar número + icono
           if(normalize(headers[j]) === 'diferencia'){
             let val = parseFloat(cell);
             if(isNaN(val) || val===0) cell = cell + ' <span class="diff-zero">—</span>';
             else if(val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
             else cell = cell + ' <span class="diff-positive">▲</span>';
           }
+
           tr += '<td>'+cell+'</td>';
         }
         tr+='</tr>'; 
