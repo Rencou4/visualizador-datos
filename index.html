@@ -17,7 +17,6 @@
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 12px; background:#f6f8fb; color:#222; }
     
-    /* HEADER MEJORADO */
     header {
       background-color:#1721BF; 
       padding:12px 0; 
@@ -50,11 +49,16 @@
       border-radius:10px;
       padding:8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      overflow-x:auto; /* scroll horizontal */
+      overflow-x:auto;
     }
 
     table.dataTable.no-footer { border-bottom: none; }
     table.dataTable tbody tr:hover { background:#f1f5fb; }
+
+    /* Iconos diferencia */
+    .diff-zero { color:#FFD700; font-weight:bold; } /* Amarillo */
+    .diff-negative { color:#FF0000; font-weight:bold; } /* Rojo */
+    .diff-positive { color:#00AA00; font-weight:bold; } /* Verde */
 
     @media (max-width: 600px) {
       .controls select, .controls input[type="text"] { font-size:13px; padding:10px; }
@@ -108,8 +112,19 @@ $(document).ready(function(){
       const tbody = $('#tbodyRows'); tbody.empty();
       for(let i=1;i<rows.length;i++){
         let tr='<tr>';
-        for(let j=0;j<headers.length;j++) tr += '<td>'+(rows[i][j]===undefined?'':rows[i][j])+'</td>';
-        tr+='</tr>'; tbody.append(tr);
+        for(let j=0;j<headers.length;j++){
+          let cell = rows[i][j]===undefined?'':rows[i][j];
+          // Aplicar iconos a columna Diferencia
+          if(normalize(headers[j]) === 'diferencia'){
+            let val = parseFloat(cell);
+            if(isNaN(val) || val===0) cell='<span class="diff-zero">—</span>';
+            else if(val < 0) cell='<span class="diff-negative">▼</span>';
+            else cell='<span class="diff-positive">▲</span>';
+          }
+          tr += '<td>'+cell+'</td>';
+        }
+        tr+='</tr>'; 
+        tbody.append(tr);
       }
 
       const headerNorm = headers.map(h => normalize(h));
@@ -129,7 +144,7 @@ $(document).ready(function(){
 
       let dataTable = $.fn.dataTable.isDataTable('#dataTable') ? $('#dataTable').DataTable().clear().destroy() : null;
       dataTable = $('#dataTable').DataTable({ 
-        responsive:false, // scroll horizontal para móviles
+        responsive:false,
         scrollX:true,     
         pageLength:25, 
         lengthMenu:[10,25,50,100], 
