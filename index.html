@@ -53,7 +53,6 @@
   </table>
 </div>
 
-<!-- Filtro gráfico -->
 <div class="controls">
   <label for="chartSelector">Ver gráfico:</label>
   <select id="chartSelector">
@@ -137,9 +136,12 @@ $(document).ready(function(){
       $('#filterMovil').on('input',applyFilters);
       $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterOperacion,#filterFlota,#filterMovil').val(''); applyFilters(); });
 
-      // --- Función para crear gráfico de Servicios ---
       function updateChartServicios(){
         const filteredData = dataTable.rows({search:'applied'}).data().toArray();
+
+        // Ordenar por semana ascendente
+        filteredData.sort((a,b)=>parseInt(a[idxSemana]??0)-parseInt(b[idxSemana]??0));
+
         const labels = filteredData.map(r => r[idxMovil] + ' | ' + r[idxSemana] + ' | ' + r[idxOperacion]);
         const servicios = filteredData.map(r => parseFloat(r[idxServicios]??0));
         const metas = filteredData.map(r => parseFloat(r[idxMeta]??0));
@@ -157,6 +159,7 @@ $(document).ready(function(){
           },
           options: {
             responsive:true,
+            maintainAspectRatio:false,
             interaction: { mode:'index', intersect:false },
             stacked:false,
             plugins:{ legend:{ display:true } },
@@ -167,7 +170,6 @@ $(document).ready(function(){
         });
       }
 
-      // Inicializar gráfico al cargar
       updateChartServicios();
 
     })
