@@ -1,120 +1,118 @@
+import pandas as pd
+
+# Cargar el archivo Excel (asegúrate de que el archivo esté en la misma carpeta que este script)
+df = pd.read_excel("dispersion.xlsx", sheet_name="data")
+
+# Convertir la tabla a HTML sin índice
+table_html = df.to_html(index=False, classes="table table-striped table-bordered", border=0)
+
+# Crear archivo HTML
+html_content = f"""
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Visualizador de ESTATUS</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Librerías -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
-  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { color: #333; text-align: center; }
-    #flota-buttons { margin-bottom: 15px; text-align: center; }
-    #flota-buttons button { 
-      margin: 5px 3px; 
-      padding: 8px 12px; 
-      font-size: 14px; 
-      cursor: pointer;
-    }
-    #movil-filter-container { 
-      margin-bottom: 15px; 
-      text-align: center; 
-    }
-    #movil-filter { 
-      width: 80%; 
-      max-width: 250px; 
-      padding: 8px; 
-      font-size: 14px; 
-    }
-    table {
-      width: 100%;
-      max-width: 100%;
-      overflow-x: auto;
-      display: block;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Dashboard de Dispersión</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {{
+            background: #f8f9fa;
+            padding: 20px;
+        }}
+        h1 {{
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        .filters {{
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }}
+        .table-container {{
+            max-height: 600px;
+            overflow-y: auto;
+        }}
+    </style>
 </head>
 <body>
+    <h1>Dashboard de Dispersión</h1>
 
-<h1>Visualizador de ESTATUS</h1>
-<p style="text-align:center;">Filtra primero por Flota y luego busca un MOVIL específico.</p>
+    <!-- Filtros -->
+    <div class="filters">
+        <div>
+            <label for="semanaFilter">Semana:</label>
+            <select id="semanaFilter" class="form-select">
+                <option value="">Todos</option>
+                {"".join([f'<option value="{val}">{val}</option>' for val in sorted(df['Semana'].dropna().unique())])}
+            </select>
+        </div>
 
-<!-- Botones Flota -->
-<div id="flota-buttons"></div>
+        <div>
+            <label for="operacionFilter">Operación:</label>
+            <select id="operacionFilter" class="form-select">
+                <option value="">Todos</option>
+                {"".join([f'<option value="{val}">{val}</option>' for val in sorted(df['Operación'].dropna().unique())])}
+            </select>
+        </div>
 
-<!-- Filtro dinámico MOVIL -->
-<div id="movil-filter-container">
-  <label for="movil-filter">Buscar MOVIL:</label>
-  <input type="text" id="movil-filter" placeholder="Escribe el código del MOVIL...">
-</div>
+        <div>
+            <label for="flotaFilter">FLOTA:</label>
+            <select id="flotaFilter" class="form-select">
+                <option value="">Todos</option>
+                {"".join([f'<option value="{val}">{val}</option>' for val in sorted(df['FLOTA'].dropna().unique())])}
+            </select>
+        </div>
 
-<!-- Tabla de datos -->
-<table id="excel-table" class="display responsive nowrap">
-  <thead id="table-head"></thead>
-  <tbody id="table-body"></tbody>
-</table>
+        <div>
+            <label for="movilSearch">Móvil:</label>
+            <input type="text" id="movilSearch" class="form-control" placeholder="Buscar móvil...">
+        </div>
+    </div>
 
-<script>
-$(document).ready(function() {
-    fetch('ESTATUS.xlsx')
-    .then(response => response.arrayBuffer())
-    .then(data => {
-        let workbook = XLSX.read(data, { type: 'array' });
-        let sheet = workbook.Sheets[workbook.SheetNames[0]];
-        let json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    <!-- Tabla -->
+    <div class="table-container">
+        {table_html}
+    </div>
 
-        let head = $("#table-head");
-        let body = $("#table-body");
-        let flotaButtonsDiv = $("#flota-buttons");
+    <script>
+        $(document).ready(function() {{
+            function filtrar() {{
+                var semana = $("#semanaFilter").val().toLowerCase();
+                var operacion = $("#operacionFilter").val().toLowerCase();
+                var flota = $("#flotaFilter").val().toLowerCase();
+                var movil = $("#movilSearch").val().toLowerCase();
 
-        head.empty(); body.empty(); flotaButtonsDiv.empty();
+                $("table tbody tr").each(function() {{
+                    var row = $(this);
+                    var rowSemana = row.find("td:eq(1)").text().toLowerCase();   // Columna Semana
+                    var rowMovil = row.find("td:eq(2)").text().toLowerCase();    // Columna Móvil
+                    var rowOperacion = row.find("td:eq(3)").text().toLowerCase();// Columna Operación
+                    var rowFlota = row.find("td:eq(4)").text().toLowerCase();    // Columna FLOTA
 
-        if (json.length > 0) {
-            // Encabezados
-            let headerRow = "<tr>" + json[0].map(h => `<th>${h}</th>`).join("") + "</tr>";
-            head.html(headerRow);
+                    var show = true;
 
-            // Filas
-            for (let i = 1; i < json.length; i++) {
-                let row = "<tr>" + json[i].map(c => `<td>${c ?? ""}</td>`).join("") + "</tr>";
-                body.append(row);
-            }
+                    if (semana && rowSemana !== semana) show = false;
+                    if (operacion && rowOperacion !== operacion) show = false;
+                    if (flota && rowFlota !== flota) show = false;
+                    if (movil && !rowMovil.includes(movil)) show = false;
 
-            // Índices de columnas
-            const movilIndex = json[0].indexOf("MOVIL");
-            const flotaIndex = json[0].indexOf("Flota");
+                    row.toggle(show);
+                }});
+            }}
 
-            // Crear botones de Flota dinámicos
-            let flotas = [...new Set(json.slice(1).map(row => row[flotaIndex]))].sort();
-            flotas.forEach(f => {
-                let btn = $(`<button>${f}</button>`);
-                btn.on("click", function() {
-                    // Filtrar tabla por Flota
-                    table.column(flotaIndex).search('^' + f + '$', true, false).draw();
-                    $("#movil-filter").val('').trigger('input'); // limpiar búsqueda MOVIL
-                });
-                flotaButtonsDiv.append(btn);
-            });
-
-            // Inicializar DataTable con responsive
-            let table = $('#excel-table').DataTable({
-                responsive: true
-            });
-
-            // Filtro dinámico MOVIL
-            $("#movil-filter").on("input", function() {
-                let val = $(this).val();
-                table.column(movilIndex).search(val, true, false).draw();
-            });
-        }
-    });
-});
-</script>
-
+            $("#semanaFilter, #operacionFilter, #flotaFilter").on("change", filtrar);
+            $("#movilSearch").on("keyup", filtrar);
+        }});
+    </script>
 </body>
 </html>
+"""
+
+with open("dashboard.html", "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print("✅ Dashboard generado: abre el archivo 'dashboard.html'")
+
