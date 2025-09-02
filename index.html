@@ -50,6 +50,11 @@
             0%, 100% { opacity: 0; }
             50% { opacity: 1; }
         }
+
+        /* Oculta los contenedores al inicio */
+        .hidden-content {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -62,22 +67,28 @@
     <h2 id="dynamicText"></h2>
 </div>
 
-<div class="controls" aria-hidden="false">
-    <select id="filterSemana"><option value="">Semana: Todas</option></select>
-    <select id="filterFlota"><option value="">FLOTA: Todas</option></select>
-    <input id="filterMovil" class="search-box" type="text" placeholder="Buscar MOVIL (dinámico)"/>
-    <button id="clearFilters" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Limpiar</button>
+<div class="controls">
+    <input id="filterMovil" class="search-box" type="text" placeholder="Buscar MOVIL (exacto)"/>
+    <button id="searchButton" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Buscar</button>
 </div>
 
-<div class="table-wrapper">
-    <table id="dataTable" class="display nowrap" style="width:100%">
-        <thead><tr id="theadRow"></tr></thead>
-        <tbody id="tbodyRows"></tbody>
-    </table>
-</div>
+<div id="contentContainer" class="hidden-content">
+    <div class="controls" aria-hidden="false">
+        <select id="filterSemana"><option value="">Semana: Todas</option></select>
+        <select id="filterFlota"><option value="">FLOTA: Todas</option></select>
+        <button id="clearFilters" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Limpiar</button>
+    </div>
 
-<div class="chart-container">
-    <canvas id="chartServicios"></canvas>
+    <div class="table-wrapper">
+        <table id="dataTable" class="display nowrap" style="width:100%">
+            <thead><tr id="theadRow"></tr></thead>
+            <tbody id="tbodyRows"></tbody>
+        </table>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="chartServicios"></canvas>
+    </div>
 </div>
 
 <script>
@@ -85,6 +96,8 @@ function normalize(s){ if(s === undefined || s === null) return ""; return Strin
 function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 let chartServicios;
+let dataTable;
+let rawData; // Variable para almacenar los datos brutos del Excel
 
 // Script para el texto dinámico
 document.addEventListener("DOMContentLoaded", function() {
@@ -109,194 +122,201 @@ $(document).ready(function(){
             const workbook = XLSX.read(ab, {type:'array'});
             const sheetName = workbook.SheetNames.includes('data') ? 'data' : workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
-            const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
-            if(!rows || rows.length<1){ alert('La hoja está vacía o no tiene encabezados.'); return; }
+            rawData = XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
+            if(!rawData || rawData.length<1){ alert('La hoja está vacía o no tiene encabezados.'); return; }
 
-            const headers = rows[0].map(h => h===null?"":h);
-            const thead = $('#theadRow'); thead.empty();
-            
-            // Lista de encabezados permitidos para mostrar en la tabla
-            const allowedHeaders = ['Estado', 'Semana', 'Móvil', 'FLOTA', 'Servicios', 'Meta', 'Diferencia'];
-            
-            // Obtenemos los índices de las columnas permitidas
-            const headerIndexes = {};
-            const displayHeaders = [];
-            headers.forEach((h, i) => {
-                if (allowedHeaders.includes(h)) {
-                    headerIndexes[normalize(h)] = i;
-                    displayHeaders.push(h);
-                    thead.append('<th>'+ (h||'') + '</th>');
-                }
-            });
+            setupTableAndFilters(rawData);
+        })
+        .catch(err=>{ console.error(err); alert('Error cargando data.xlsx: '+err.message); });
 
-            const tbody = $('#tbodyRows'); tbody.empty();
-            for(let i=1;i<rows.length;i++){
-                let tr='<tr>';
-                displayHeaders.forEach(h => {
-                    const originalIndex = headers.indexOf(h);
-                    let cell = rows[i][originalIndex] === undefined ? '' : rows[i][originalIndex];
-
-                    if (normalize(h) === 'diferencia') {
-                        let val = parseFloat(cell);
-                        if (isNaN(val) || val === 0) cell = cell + ' <span class="diff-zero">—</span>';
-                        else if (val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
-                        else cell = cell + ' <span class="diff-positive">▲</span>';
-                    }
-                    tr += '<td>'+cell+'</td>';
-                });
-                tr+='</tr>'; 
-                tbody.append(tr);
+    function setupTableAndFilters(rows) {
+        const headers = rows[0].map(h => h===null?"":h);
+        const thead = $('#theadRow'); thead.empty();
+        
+        const allowedHeaders = ['Estado', 'Semana', 'Móvil', 'FLOTA', 'Servicios', 'Meta', 'Diferencia'];
+        
+        const headerIndexes = {};
+        const displayHeaders = [];
+        headers.forEach((h, i) => {
+            if (allowedHeaders.includes(h)) {
+                headerIndexes[normalize(h)] = i;
+                displayHeaders.push(h);
+                thead.append('<th>'+ (h||'') + '</th>');
             }
+        });
 
-            const headerNorm = headers.map(h => normalize(h));
-            function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn===target||hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
+        const tbody = $('#tbodyRows'); tbody.empty();
+        for(let i=1;i<rows.length;i++){
+            let tr='<tr>';
+            displayHeaders.forEach(h => {
+                const originalIndex = headers.indexOf(h);
+                let cell = rows[i][originalIndex] === undefined ? '' : rows[i][originalIndex];
 
-            const idxSemana = idxOf(['Semana','semana']);
-            const idxFlota = idxOf(['FLOTA','Flota','flota']);
-            const idxMovil = idxOf(['Móvil','Movil','MOVIL','movil']);
-            const idxServicios = idxOf(['Servicios','servicios']);
-            const idxMeta = idxOf(['Meta','meta']);
-
-            function uniqueValuesAt(idx){ if(idx<0) return []; const s=new Set(); for(let i=1;i<rows.length;i++) s.add(String(rows[i][idx]??'').trim()); return Array.from(s).filter(x=>x!=='').sort((a,b)=>a.localeCompare(b+'')); }
-            const semanas = uniqueValuesAt(idxSemana), flotas = uniqueValuesAt(idxFlota);
-            const $fSemana=$('#filterSemana'), $fFlota=$('#filterFlota');
-            semanas.forEach(v=>$fSemana.append(`<option value="${v}">${v}</option>`));
-            flotas.forEach(v=>$fFlota.append(`<option value="${v}">${v}</option>`));
-
-            let dataTable = $.fn.dataTable.isDataTable('#dataTable') ? $('#dataTable').DataTable().clear().destroy() : null;
-            dataTable = $('#dataTable').DataTable({ responsive:false, scrollX:true, pageLength:25, lengthMenu:[10,25,50,100], order:[] });
-
-            function applyFilters(){
-                if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-                if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-                
-                // Corrección aquí: La búsqueda del móvil ahora es exacta
-                if(idxMovil>=0){ 
-                    const mv=$('#filterMovil').val(); 
-                    dataTable.column(idxMovil).search(mv?'^'+escapeRegex(mv)+'$':'', true, false, true); 
+                if (normalize(h) === 'diferencia') {
+                    let val = parseFloat(cell);
+                    if (isNaN(val) || val === 0) cell = cell + ' <span class="diff-zero">—</span>';
+                    else if (val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
+                    else cell = cell + ' <span class="diff-positive">▲</span>';
                 }
-                
+                tr += '<td>'+cell+'</td>';
+            });
+            tr+='</tr>'; 
+            tbody.append(tr);
+        }
+
+        if(dataTable) dataTable.destroy();
+        dataTable = $('#dataTable').DataTable({ responsive:false, scrollX:true, pageLength:25, lengthMenu:[10,25,50,100], order:[] });
+
+        const headerNorm = headers.map(h => normalize(h));
+        function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn===target||hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
+
+        const idxSemana = idxOf(['Semana','semana']);
+        const idxFlota = idxOf(['FLOTA','Flota','flota']);
+        const idxMovil = idxOf(['Móvil','Movil','MOVIL','movil']);
+        const idxServicios = idxOf(['Servicios','servicios']);
+        const idxMeta = idxOf(['Meta','meta']);
+
+        function uniqueValuesAt(idx){ if(idx<0) return []; const s=new Set(); for(let i=1;i<rows.length;i++) s.add(String(rows[i][idx]??'').trim()); return Array.from(s).filter(x=>x!=='').sort((a,b)=>a.localeCompare(b+'')); }
+        const semanas = uniqueValuesAt(idxSemana), flotas = uniqueValuesAt(idxFlota);
+        const $fSemana=$('#filterSemana'), $fFlota=$('#filterFlota');
+        $fSemana.empty().append('<option value="">Semana: Todas</option>');
+        $fFlota.empty().append('<option value="">FLOTA: Todas</option>');
+        semanas.forEach(v=>$fSemana.append(`<option value="${v}">${v}</option>`));
+        flotas.forEach(v=>$fFlota.append(`<option value="${v}">${v}</option>`));
+
+        function applyFilters(){
+            if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
+            if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
+            
+            dataTable.draw();
+            updateChartServicios();
+        }
+
+        $('#filterSemana,#filterFlota').on('change',applyFilters);
+        $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterFlota').val(''); applyFilters(); });
+
+
+        $('#searchButton').on('click', function() {
+            const mv = $('#filterMovil').val();
+            if (mv) {
+                // Muestra el contenido
+                $('#contentContainer').show();
+
+                // Filtra la tabla y actualiza
+                dataTable.column(idxMovil).search('^' + escapeRegex(mv) + '$', true, false, true);
                 dataTable.draw();
                 updateChartServicios();
+            } else {
+                alert('Por favor, ingrese un número de móvil.');
             }
+        });
 
-            $('#filterSemana,#filterFlota').on('change',applyFilters);
-            $('#filterMovil').on('input',applyFilters);
-            $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterFlota,#filterMovil').val(''); applyFilters(); });
-
-            function updateChartServicios(){
-                const filteredData = dataTable.rows({search:'applied'}).data().toArray();
+        function updateChartServicios(){
+            const filteredData = dataTable.rows({search:'applied'}).data().toArray();
+            
+            const groupedData = {};
+            filteredData.forEach(row => {
+                const key = `${row[idxFlota]} | SEM.${row[idxSemana]}`;
                 
-                // Agrupamos los datos para Suma de Servicios y Promedio de Meta
-                const groupedData = {};
-                filteredData.forEach(row => {
-                    const key = `${row[idxFlota]} | SEM.${row[idxSemana]}`;
-                    
-                    if (!groupedData[key]) {
-                        groupedData[key] = {
-                            servicios: 0,
-                            metas: [],
-                        };
-                    }
-                    groupedData[key].servicios += parseFloat(row[idxServicios] ?? 0);
-                    groupedData[key].metas.push(parseFloat(row[idxMeta] ?? 0));
-                });
+                if (!groupedData[key]) {
+                    groupedData[key] = {
+                        servicios: 0,
+                        metas: [],
+                    };
+                }
+                groupedData[key].servicios += parseFloat(row[idxServicios] ?? 0);
+                groupedData[key].metas.push(parseFloat(row[idxMeta] ?? 0));
+            });
 
-                // Preparamos los datos para Chart.js
-                const labels = Object.keys(groupedData);
-                const servicios = labels.map(key => groupedData[key].servicios);
-                const promedioMetas = labels.map(key => {
-                    const metas = groupedData[key].metas;
-                    const sum = metas.reduce((a, b) => a + b, 0);
-                    return sum / metas.length;
-                });
+            const labels = Object.keys(groupedData);
+            const servicios = labels.map(key => groupedData[key].servicios);
+            const promedioMetas = labels.map(key => {
+                const metas = groupedData[key].metas;
+                const sum = metas.reduce((a, b) => a + b, 0);
+                return sum / metas.length;
+            });
 
-                const ctx = document.getElementById('chartServicios').getContext('2d');
-                if(chartServicios) chartServicios.destroy();
+            const ctx = document.getElementById('chartServicios').getContext('2d');
+            if(chartServicios) chartServicios.destroy();
 
-                // Es necesario registrar el plugin antes de crear el gráfico
-                Chart.register(ChartDataLabels);
+            Chart.register(ChartDataLabels);
 
-                chartServicios = new Chart(ctx, {
-                    type: 'bar', // Tipo de gráfico base
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { 
-                                type:'bar', 
-                                label:'Suma de Servicios', 
-                                data: servicios, 
-                                backgroundColor:'#D3D3D3', 
-                                order: 2, 
-                                datalabels: {
-                                    align: 'end',
-                                    anchor: 'start',
-                                    formatter: (value) => {
-                                        return value.toFixed(0); 
-                                    }
-                                }
-                            },
-                            { 
-                                type:'line', 
-                                label:'Promedio de Meta', 
-                                data: promedioMetas, 
-                                borderColor:'#76FF03', 
-                                backgroundColor:'#76FF03', 
-                                borderWidth: 3, 
-                                fill:false, 
-                                pointRadius: 5, 
-                                pointStyle: 'circle', 
-                                order: 1, 
-                                datalabels: {
-                                    align: 'end',
-                                    anchor: 'end',
-                                    formatter: (value) => {
-                                        return value.toFixed(0); 
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive:true,
-                        maintainAspectRatio:false,
-                        interaction: { mode:'index', intersect:false },
-                        plugins:{ 
-                            legend:{ display:true },
-                            tooltip: { 
-                                callbacks: {
-                                    label: (context) => {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        label += context.parsed.y.toFixed(0);
-                                        return label;
-                                    }
+            chartServicios = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { 
+                            type:'bar', 
+                            label:'Suma de Servicios', 
+                            data: servicios, 
+                            backgroundColor:'#D3D3D3', 
+                            order: 2, 
+                            datalabels: {
+                                align: 'end',
+                                anchor: 'start',
+                                formatter: (value) => {
+                                    return value.toFixed(0); 
                                 }
                             }
                         },
-                        scales:{ 
-                            x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
+                        { 
+                            type:'line', 
+                            label:'Promedio de Meta', 
+                            data: promedioMetas, 
+                            borderColor:'#76FF03', 
+                            backgroundColor:'#76FF03', 
+                            borderWidth: 3, 
+                            fill:false, 
+                            pointRadius: 5, 
+                            pointStyle: 'circle', 
+                            order: 1, 
+                            datalabels: {
+                                align: 'end',
+                                anchor: 'end',
+                                formatter: (value) => {
+                                    return value.toFixed(0); 
                                 }
-                            },
-                            y:{ 
-                                beginAtZero:true, 
-                                title:{ display:true, text:'Cantidad' },
-                                // Añadir espacio en la parte superior del gráfico
-                                max: Math.max(...servicios, ...promedioMetas) * 1.2,
                             }
                         }
+                    ]
+                },
+                options: {
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    interaction: { mode:'index', intersect:false },
+                    plugins:{ 
+                        legend:{ display:true },
+                        tooltip: { 
+                            callbacks: {
+                                label: (context) => {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += context.parsed.y.toFixed(0);
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales:{ 
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y:{ 
+                            beginAtZero:true, 
+                            title:{ display:true, text:'Cantidad' },
+                            max: Math.max(...servicios, ...promedioMetas) * 1.2,
+                        }
                     }
-                });
-            }
-
-            applyFilters();
-        })
-        .catch(err=>{ console.error(err); alert('Error cargando data.xlsx: '+err.message); });
+                }
+            });
+        }
+    }
 });
 </script>
 
