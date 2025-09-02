@@ -228,7 +228,7 @@ $(document).ready(function(){
                                 order: 2, 
                                 datalabels: {
                                     align: 'end',
-                                    anchor: 'end',
+                                    anchor: 'start', // Cambiado a 'start' para ubicarlo en la parte inferior de la barra
                                     formatter: (value) => {
                                         return value.toFixed(0); 
                                     }
@@ -283,7 +283,9 @@ $(document).ready(function(){
                             },
                             y:{ 
                                 beginAtZero:true, 
-                                title:{ display:true, text:'Cantidad' } 
+                                title:{ display:true, text:'Cantidad' },
+                                // Añadir espacio en la parte superior del gráfico
+                                max: Math.max(...servicios, ...promedioMetas) * 1.2,
                             }
                         }
                     }
