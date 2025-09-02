@@ -122,22 +122,38 @@ $(document).ready(function(){
 
             const headers = rows[0].map(h => h===null?"":h);
             const thead = $('#theadRow'); thead.empty();
-            headers.forEach(h => thead.append('<th>'+ (h||'') + '</th>'));
+            
+            // Lista de encabezados permitidos para mostrar en la tabla
+            const allowedHeaders = ['Estado', 'Semana', 'Móvil', 'Operación', 'FLOTA', 'Servicios', 'Meta', 'Diferencia'];
+            
+            // Obtenemos los índices de las columnas permitidas
+            const headerIndexes = {};
+            const displayHeaders = [];
+            headers.forEach((h, i) => {
+                if (allowedHeaders.includes(h)) {
+                    headerIndexes[normalize(h)] = i;
+                    displayHeaders.push(h);
+                    thead.append('<th>'+ (h||'') + '</th>');
+                }
+            });
 
             const tbody = $('#tbodyRows'); tbody.empty();
             for(let i=1;i<rows.length;i++){
                 let tr='<tr>';
-                for(let j=0;j<headers.length;j++){
-                    let cell = rows[i][j]===undefined?'':rows[i][j];
-                    if(normalize(headers[j]) === 'diferencia'){
+                displayHeaders.forEach(h => {
+                    const originalIndex = headers.indexOf(h);
+                    let cell = rows[i][originalIndex] === undefined ? '' : rows[i][originalIndex];
+
+                    if (normalize(h) === 'diferencia') {
                         let val = parseFloat(cell);
-                        if(isNaN(val) || val===0) cell = cell + ' <span class="diff-zero">—</span>';
-                        else if(val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
+                        if (isNaN(val) || val === 0) cell = cell + ' <span class="diff-zero">—</span>';
+                        else if (val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
                         else cell = cell + ' <span class="diff-positive">▲</span>';
                     }
                     tr += '<td>'+cell+'</td>';
-                }
-                tr+='</tr>'; tbody.append(tr);
+                });
+                tr+='</tr>'; 
+                tbody.append(tr);
             }
 
             const headerNorm = headers.map(h => normalize(h));
