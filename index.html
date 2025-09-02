@@ -211,6 +211,10 @@ $(document).ready(function(){
 
                 const ctx = document.getElementById('chartServicios').getContext('2d');
                 if(chartServicios) chartServicios.destroy();
+
+                // Es necesario registrar el plugin antes de crear el gráfico
+                Chart.register(ChartDataLabels);
+
                 chartServicios = new Chart(ctx, {
                     type: 'bar', // Tipo de gráfico base
                     data: {
