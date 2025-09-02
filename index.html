@@ -98,6 +98,8 @@ function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 let chartServicios;
 let dataTable;
 let rawData; // Variable para almacenar los datos brutos del Excel
+let idxSemana, idxFlota, idxMovil, idxServicios, idxMeta;
+
 
 // Script para el texto dinámico
 document.addEventListener("DOMContentLoaded", function() {
@@ -170,11 +172,11 @@ $(document).ready(function(){
         const headerNorm = headers.map(h => normalize(h));
         function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn===target||hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
 
-        const idxSemana = idxOf(['Semana','semana']);
-        const idxFlota = idxOf(['FLOTA','Flota','flota']);
-        const idxMovil = idxOf(['Móvil','Movil','MOVIL','movil']);
-        const idxServicios = idxOf(['Servicios','servicios']);
-        const idxMeta = idxOf(['Meta','meta']);
+        idxSemana = idxOf(['Semana','semana']);
+        idxFlota = idxOf(['FLOTA','Flota','flota']);
+        idxMovil = idxOf(['Móvil','Movil','MOVIL','movil']);
+        idxServicios = idxOf(['Servicios','servicios']);
+        idxMeta = idxOf(['Meta','meta']);
 
         function uniqueValuesAt(idx){ if(idx<0) return []; const s=new Set(); for(let i=1;i<rows.length;i++) s.add(String(rows[i][idx]??'').trim()); return Array.from(s).filter(x=>x!=='').sort((a,b)=>a.localeCompare(b+'')); }
         const semanas = uniqueValuesAt(idxSemana), flotas = uniqueValuesAt(idxFlota);
@@ -210,9 +212,14 @@ $(document).ready(function(){
                 alert('Por favor, ingrese un número de móvil.');
             }
         });
+        
+        // Agregamos el evento de ordenamiento a la tabla
+        dataTable.on('order.dt', function() {
+            updateChartServicios();
+        });
 
         function updateChartServicios(){
-            const filteredData = dataTable.rows({search:'applied'}).data().toArray();
+            const filteredData = dataTable.rows({search:'applied', order:'applied'}).data().toArray();
             
             const groupedData = {};
             filteredData.forEach(row => {
@@ -222,19 +229,25 @@ $(document).ready(function(){
                     groupedData[key] = {
                         servicios: 0,
                         metas: [],
+                        originalOrder: -1 // Guardamos el orden original para mantenerlo
                     };
                 }
                 groupedData[key].servicios += parseFloat(row[idxServicios] ?? 0);
                 groupedData[key].metas.push(parseFloat(row[idxMeta] ?? 0));
             });
-
-            const labels = Object.keys(groupedData);
-            const servicios = labels.map(key => groupedData[key].servicios);
-            const promedioMetas = labels.map(key => {
-                const metas = groupedData[key].metas;
+            
+            // Obtenemos los datos ordenados del DataTables
+            const labels = dataTable.rows({search:'applied', order:'applied'}).data().toArray().map(row => `${row[idxFlota]} | SEM.${row[idxSemana]}`);
+            const uniqueLabels = [...new Set(labels)]; // Eliminamos duplicados
+            
+            // Reordenamos los datos para el gráfico según el nuevo orden de la tabla
+            const servicios = uniqueLabels.map(key => groupedData[key]?.servicios ?? 0);
+            const promedioMetas = uniqueLabels.map(key => {
+                const metas = groupedData[key]?.metas ?? [];
                 const sum = metas.reduce((a, b) => a + b, 0);
-                return sum / metas.length;
+                return metas.length > 0 ? sum / metas.length : 0;
             });
+
 
             const ctx = document.getElementById('chartServicios').getContext('2d');
             if(chartServicios) chartServicios.destroy();
@@ -244,7 +257,7 @@ $(document).ready(function(){
             chartServicios = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: uniqueLabels,
                     datasets: [
                         { 
                             type:'bar', 
