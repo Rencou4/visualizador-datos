@@ -135,9 +135,6 @@ $(document).ready(function(){
                         else if(val < 0) cell = cell + ' <span class="diff-negative">▼</span>';
                         else cell = cell + ' <span class="diff-positive">▲</span>';
                     }
-                    if(normalize(headers[j]) === 'produccións/.' || normalize(headers[j])==='produccions/.') {
-                        cell = parseFloat(cell).toLocaleString('es-PE', {style:'currency', currency:'PEN'});
-                    }
                     tr += '<td>'+cell+'</td>';
                 }
                 tr+='</tr>'; tbody.append(tr);
