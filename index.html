@@ -77,13 +77,6 @@
     </table>
 </div>
 
-<div class="controls">
-    <label for="chartSelector">Ver gráfico:</label>
-    <select id="chartSelector">
-        <option value="servicios">Servicios</option>
-    </select>
-</div>
-
 <div class="chart-container">
     <canvas id="chartServicios"></canvas>
 </div>
@@ -232,7 +225,7 @@ $(document).ready(function(){
                                 datalabels: {
                                     align: 'end',
                                     anchor: 'end',
-                                    formatter: (value, context) => {
+                                    formatter: (value) => {
                                         return value.toFixed(0); 
                                     }
                                 }
@@ -251,7 +244,7 @@ $(document).ready(function(){
                                 datalabels: {
                                     align: 'end',
                                     anchor: 'end',
-                                    formatter: (value, context) => {
+                                    formatter: (value) => {
                                         return value.toFixed(0); 
                                     }
                                 }
@@ -266,7 +259,7 @@ $(document).ready(function(){
                             legend:{ display:true },
                             tooltip: { 
                                 callbacks: {
-                                    label: function(context) {
+                                    label: (context) => {
                                         let label = context.dataset.label || '';
                                         if (label) {
                                             label += ': ';
@@ -274,6 +267,13 @@ $(document).ready(function(){
                                         label += context.parsed.y.toFixed(0);
                                         return label;
                                     }
+                                }
+                            },
+                            // Agregamos el plugin datalabels al gráfico
+                            datalabels: {
+                                color: '#000',
+                                font: {
+                                    weight: 'bold'
                                 }
                             }
                         },
