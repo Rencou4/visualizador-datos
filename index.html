@@ -169,7 +169,13 @@ $(document).ready(function(){
             function applyFilters(){
                 if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
                 if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-                if(idxMovil>=0){ const mv=$('#filterMovil').val(); dataTable.column(idxMovil).search(mv?mv:'', false,true,true); }
+                
+                // Corrección aquí: La búsqueda del móvil ahora es exacta
+                if(idxMovil>=0){ 
+                    const mv=$('#filterMovil').val(); 
+                    dataTable.column(idxMovil).search(mv?'^'+escapeRegex(mv)+'$':'', true, false, true); 
+                }
+                
                 dataTable.draw();
                 updateChartServicios();
             }
@@ -234,9 +240,9 @@ $(document).ready(function(){
                                 type:'line', 
                                 label:'Promedio de Meta', 
                                 data: promedioMetas, 
-                                borderColor:'#76FF03', // Verde más vibrante
-                                backgroundColor:'#76FF03', // Verde más vibrante
-                                borderWidth: 3, // Grosor de línea más delgado
+                                borderColor:'#76FF03', 
+                                backgroundColor:'#76FF03', 
+                                borderWidth: 3, 
                                 fill:false, 
                                 pointRadius: 5, 
                                 pointStyle: 'circle', 
