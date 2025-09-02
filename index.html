@@ -64,7 +64,6 @@
 
 <div class="controls" aria-hidden="false">
     <select id="filterSemana"><option value="">Semana: Todas</option></select>
-    <select id="filterOperacion"><option value="">Operación: Todas</option></select>
     <select id="filterFlota"><option value="">FLOTA: Todas</option></select>
     <input id="filterMovil" class="search-box" type="text" placeholder="Buscar MOVIL (dinámico)"/>
     <button id="clearFilters" style="padding:8px 10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">Limpiar</button>
@@ -117,7 +116,7 @@ $(document).ready(function(){
             const thead = $('#theadRow'); thead.empty();
             
             // Lista de encabezados permitidos para mostrar en la tabla
-            const allowedHeaders = ['Estado', 'Semana', 'Móvil', 'Operación', 'FLOTA', 'Servicios', 'Meta', 'Diferencia'];
+            const allowedHeaders = ['Estado', 'Semana', 'Móvil', 'FLOTA', 'Servicios', 'Meta', 'Diferencia'];
             
             // Obtenemos los índices de las columnas permitidas
             const headerIndexes = {};
@@ -153,17 +152,15 @@ $(document).ready(function(){
             function idxOf(names){ for(const nm of names){ const target = normalize(nm); const idx = headerNorm.findIndex(hn => hn===target||hn.includes(target)||target.includes(hn)); if(idx!==-1) return idx; } return -1; }
 
             const idxSemana = idxOf(['Semana','semana']);
-            const idxOperacion = idxOf(['Operación','Operacion','operacion','operaciones']);
             const idxFlota = idxOf(['FLOTA','Flota','flota']);
             const idxMovil = idxOf(['Móvil','Movil','MOVIL','movil']);
             const idxServicios = idxOf(['Servicios','servicios']);
             const idxMeta = idxOf(['Meta','meta']);
 
             function uniqueValuesAt(idx){ if(idx<0) return []; const s=new Set(); for(let i=1;i<rows.length;i++) s.add(String(rows[i][idx]??'').trim()); return Array.from(s).filter(x=>x!=='').sort((a,b)=>a.localeCompare(b+'')); }
-            const semanas = uniqueValuesAt(idxSemana), operaciones = uniqueValuesAt(idxOperacion), flotas = uniqueValuesAt(idxFlota);
-            const $fSemana=$('#filterSemana'), $fOperacion=$('#filterOperacion'), $fFlota=$('#filterFlota');
+            const semanas = uniqueValuesAt(idxSemana), flotas = uniqueValuesAt(idxFlota);
+            const $fSemana=$('#filterSemana'), $fFlota=$('#filterFlota');
             semanas.forEach(v=>$fSemana.append(`<option value="${v}">${v}</option>`));
-            operaciones.forEach(v=>$fOperacion.append(`<option value="${v}">${v}</option>`));
             flotas.forEach(v=>$fFlota.append(`<option value="${v}">${v}</option>`));
 
             let dataTable = $.fn.dataTable.isDataTable('#dataTable') ? $('#dataTable').DataTable().clear().destroy() : null;
@@ -171,16 +168,15 @@ $(document).ready(function(){
 
             function applyFilters(){
                 if(idxSemana>=0){ const val=$('#filterSemana').val(); dataTable.column(idxSemana).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
-                if(idxOperacion>=0){ const val=$('#filterOperacion').val(); dataTable.column(idxOperacion).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
                 if(idxFlota>=0){ const val=$('#filterFlota').val(); dataTable.column(idxFlota).search(val?'^'+escapeRegex(val)+'$':'',true,false); }
                 if(idxMovil>=0){ const mv=$('#filterMovil').val(); dataTable.column(idxMovil).search(mv?mv:'', false,true,true); }
                 dataTable.draw();
                 updateChartServicios();
             }
 
-            $('#filterSemana,#filterOperacion,#filterFlota').on('change',applyFilters);
+            $('#filterSemana,#filterFlota').on('change',applyFilters);
             $('#filterMovil').on('input',applyFilters);
-            $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterOperacion,#filterFlota,#filterMovil').val(''); applyFilters(); });
+            $('#clearFilters').on('click',()=>{ $('#filterSemana,#filterFlota,#filterMovil').val(''); applyFilters(); });
 
             function updateChartServicios(){
                 const filteredData = dataTable.rows({search:'applied'}).data().toArray();
@@ -188,7 +184,7 @@ $(document).ready(function(){
                 // Agrupamos los datos para Suma de Servicios y Promedio de Meta
                 const groupedData = {};
                 filteredData.forEach(row => {
-                    const key = `${row[idxFlota]} | ${row[idxOperacion]} | SEM.${row[idxSemana]}`;
+                    const key = `${row[idxFlota]} | SEM.${row[idxSemana]}`;
                     
                     if (!groupedData[key]) {
                         groupedData[key] = {
